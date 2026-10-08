@@ -561,6 +561,81 @@ function classicQuizCard(
   };
 }
 
+function reverseChain(ask: QuizAsk): boolean {
+  const region = ask.region;
+  if (region !== "netherlands" && region !== "united-states") return false;
+  const category = ask.category;
+  return category === "all" || category === "landmarks" || category === "provinces" || category === "states";
+}
+
+/** A landmark or stadium in this province or state, with a city to ask about next. */
+function chainItem(seed: number, roundIndex: number, place: PlayPlace, ask: QuizAsk): Landmark | null {
+  const region = ask.region ?? "";
+  const difficulty = ask.difficulty ?? "normal";
+  const fits = LANDMARKS.filter((item) => {
+    if (!item.city || !item.division || item.division !== place.name) return false;
+    if (!item.maps.includes(region)) return false;
+    return landmarkAllowed(item.level, difficulty);
+  });
+  if (fits.length === 0) return null;
+  const rnd = mulberry32((seed + roundIndex * 29) >>> 0);
+  return fits[Math.floor(rnd() * fits.length)] ?? null;
+}
+
+function chainChoices(correct: string, others: string[], rnd: () => number): string[] | null {
+  const distractors = shuffle(
+    [...new Set(others.filter((name) => name && name !== correct))],
+    rnd,
+  ).slice(0, 2);
+  if (distractors.length < 2) return null;
+  return shuffle([correct, ...distractors], rnd);
+}
+
+/**
+ * Odd rounds on the Netherlands or the United States ask the city of one
+ * stadium or landmark, then the province or state of that same city.
+ * Even rounds keep the older order: province or state first.
+ */
+function reverseChainCard(
+  seed: number,
+  roundIndex: number,
+  step: 0 | 1,
+  place: PlayPlace,
+  locale: LocaleId,
+  ask: QuizAsk,
+): QuizCard | null {
+  if (!reverseChain(ask) || roundIndex % 2 === 0) return null;
+  const item = chainItem(seed, roundIndex, place, ask);
+  if (!item?.city || !item.division) return null;
+  const text = messages(locale);
+  const rnd = mulberry32((seed + roundIndex * 29 + step * 5) >>> 0);
+  const city = locale === "nl" && item.cityNl ? item.cityNl : item.city;
+  if (step === 0) {
+    const name = locale === "nl" ? item.nameNl : item.nameEn;
+    const others = LANDMARKS.filter(
+      (candidate) => candidate.maps.includes(ask.region ?? "") && candidate.city && landmarkAllowed(candidate.level, ask.difficulty ?? "normal"),
+    ).map((candidate) => (locale === "nl" && candidate.cityNl ? candidate.cityNl : candidate.city ?? ""));
+    const choices = chainChoices(city, others, rnd);
+    if (!choices) return null;
+    return {
+      prompt: fill(text.cityIsPlace, { name }),
+      choices,
+      correct: city,
+      detail: locale === "nl" ? item.detailNl : item.detailEn,
+    };
+  }
+  const others = LANDMARKS.filter(
+    (candidate) => candidate.maps.includes(ask.region ?? "") && candidate.division && candidate.divisionKind === item.divisionKind,
+  ).map((candidate) => candidate.division ?? "");
+  const choices = chainChoices(item.division, others, rnd);
+  if (!choices) return null;
+  const prompt =
+    item.divisionKind === "state"
+      ? fill(text.stateOfCity, { city })
+      : fill(text.provinceOfCity, { city });
+  return { prompt, choices, correct: item.division, detail: locale === "nl" ? item.detailNl : item.detailEn };
+}
+
 /** Without a category, the two classic questions stay as they are. All mixes those with landmarks. */
 export function quizCard(
   seed: number,
@@ -571,6 +646,9 @@ export function quizCard(
   locale: LocaleId = "en",
   ask?: QuizAsk,
 ): QuizCard {
+  const asked = ask ?? {};
+  const chained = reverseChainCard(seed, roundIndex, step, place, locale, asked);
+  if (chained) return chained;
   const classic = () => classicQuizCard(seed, roundIndex, step, place, pool, locale);
   const category = ask?.category;
   if (category === "football") {

@@ -445,6 +445,39 @@ const hunebedden = quizCard(2, 0, 0, drenthe, placesFor("netherlands", "province
 });
 assert.match(hunebedden.prompt, /hunebedden/);
 assert.equal(hunebedden.correct, "Drenthe");
+const noordHolland = placesFor("netherlands", "provinces").find((place) => place.name === "Noord-Holland");
+assert.ok(noordHolland);
+const dutchPool = placesFor("netherlands", "provinces");
+const dutchAsk = {
+  category: "provinces" as const,
+  difficulty: "kids" as const,
+  placeMode: "provinces" as const,
+  region: "netherlands",
+};
+const dutchCity = quizCard(5, 1, 0, noordHolland, dutchPool, "en", dutchAsk);
+const dutchProvince = quizCard(5, 1, 1, noordHolland, dutchPool, "en", dutchAsk);
+const dutchProvinceNl = quizCard(5, 1, 1, noordHolland, dutchPool, "nl", dutchAsk);
+assert.match(dutchCity.prompt, /^In which city is /);
+assert.match(dutchProvince.prompt, new RegExp(`find ${dutchCity.correct}`));
+assert.equal(dutchProvince.correct, "Noord-Holland");
+assert.match(dutchProvinceNl.prompt, new RegExp(`ligt ${dutchCity.correct}`));
+const dutchKept = quizCard(5, 0, 0, noordHolland, dutchPool, "en", dutchAsk);
+assert.match(dutchKept.prompt, /province/);
+const california = placesFor("united-states", "provinces").find((place) => place.name === "California");
+assert.ok(california);
+const statePool = placesFor("united-states", "provinces");
+const stateAsk = {
+  category: "states" as const,
+  difficulty: "kids" as const,
+  placeMode: "provinces" as const,
+  region: "united-states",
+};
+const roseCity = quizCard(5, 1, 0, california, statePool, "en", stateAsk);
+const roseState = quizCard(5, 1, 1, california, statePool, "en", stateAsk);
+assert.match(roseCity.prompt, /Rose Bowl/);
+assert.equal(roseCity.correct, "Pasadena");
+assert.match(roseState.prompt, /Pasadena/);
+assert.equal(roseState.correct, "California");
 assert.equal(quiz.phase, "QUIZ_FEEDBACK");
 assert.equal(quiz.quizCorrect, true);
 assert.equal(quiz.quizPoints, 1000);

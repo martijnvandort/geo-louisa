@@ -22,6 +22,9 @@ export type Messages = {
   landmarkCity: string;
   landmarkProvince: string;
   landmarkState: string;
+  cityIsPlace: string;
+  provinceOfCity: string;
+  stateOfCity: string;
   whatLevel: string;
   whatName: string;
   kids: string;
