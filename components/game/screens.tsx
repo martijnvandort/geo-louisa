@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { motion } from "framer-motion";
-import { ChevronDown, Copy, Globe, Trophy, Volume2, VolumeX } from "lucide-react";
+import { ChevronDown, Copy, Globe, LogOut, Trophy, Volume2, VolumeX } from "lucide-react";
 import { placeCount, quizPlaceMode, getPlace, type PlaceMode } from "@/data/catalog";
 import { QUESTION_CATEGORY_LABEL, categoryForMap, questionCategoriesFor, type QuestionCategory } from "@/data/question-categories";
 import { quizCard, quizPool } from "@/data/quiz";
@@ -15,7 +15,8 @@ import { formatKm, formatScore, GUESS_MS } from "@/lib/geo";
 import { placeNote } from "@/lib/place";
 import { isMuted, playTick, setMuted } from "@/lib/audio";
 
-const glass = "rounded-2xl border border-[#2A150C] bg-[#E2ECC0] text-[#2A150C] shadow-[0_10px_28px_rgba(42,21,12,0.12)]";
+const glass = "rounded-[8px] border-[0.5px] border-[#2A150C] bg-white text-[#2A150C]";
+const controlBox = "box-border rounded-[6px] border-[0.5px] border-[#2A150C]";
 
 function MuteButton() {
   const [muted, setMutedState] = useState(false);
@@ -90,7 +91,7 @@ const uiFace = "[font-family:var(--font-ui),DM_Sans,sans-serif]";
 const displayFace = "[font-family:var(--font-display),Cormorant_Garamond,serif]";
 const questionType = `min-w-0 text-2xl leading-[1.15] font-normal tracking-[-0.005em] text-balance ${displayFace}`;
 const ink = "text-[#2A150C]";
-const fieldMetric = `box-border h-[34px] w-[152px] shrink-0 appearance-none border border-[#2A150C] py-0 pr-7 pl-3 text-right text-[15px] font-normal leading-[34px] outline-none ${displayFace}`;
+const fieldMetric = `box-border h-[34px] w-[152px] shrink-0 appearance-none rounded-[6px] border-[0.5px] border-[#2A150C] py-0 pr-7 pl-3 text-right text-[15px] font-normal leading-[34px] outline-none ${displayFace}`;
 const fieldClass = `${fieldMetric} text-[#2A150C]`;
 const fieldLocked = `${fieldMetric} text-[#7A4E28]`;
 
@@ -174,11 +175,11 @@ export function LobbyScreen({
         : text.levelNoteMedium;
 
   return (
-    <div className={`pointer-events-auto absolute top-0 bottom-0 left-0 z-20 flex h-dvh w-[min(480px,calc(100%-48px))] flex-col bg-[#E2ECC0] text-[#2A150C] ${uiFace}`}>
+    <div className={`pointer-events-auto absolute top-0 bottom-0 left-0 z-20 flex h-dvh w-[min(480px,calc(100%-48px))] flex-col bg-white text-[#2A150C] ${uiFace}`}>
       <header className="flex h-12 shrink-0 items-center justify-end border-b-[0.5px] border-[#2A150C] px-4">
         <label className={ink}>
           <span className="sr-only">{text.language}</span>
-          <span className="flex items-center gap-1.5 border-[0.5px] border-[#2A150C] bg-[#E2ECC0] px-2 py-1 text-xs">
+          <span className={`flex items-center gap-1.5 bg-white px-2 py-1 text-xs ${controlBox}`}>
             <Globe className="h-3.5 w-3.5" aria-hidden="true" />
             <select
               aria-label={text.language}
@@ -211,8 +212,8 @@ export function LobbyScreen({
                   type="button"
                   aria-pressed={selected}
                   onClick={() => chooseMap(choice.id)}
-                  className={`box-border h-[34px] shrink-0 whitespace-nowrap border border-[#2A150C] px-3 text-xs font-normal text-[#2A150C] ${
-                    selected ? "bg-[#FAD5B3]" : "bg-[#FBF6D2]"
+                  className={`h-[34px] shrink-0 whitespace-nowrap px-3 text-xs font-normal text-[#2A150C] ${controlBox} ${
+                    selected ? "bg-[#FBF6D2]" : "bg-white"
                   }`}
                 >
                   {text[choice.label]}
@@ -222,8 +223,8 @@ export function LobbyScreen({
             <span className="relative shrink-0">
               <select
                 aria-label={text.orCountry}
-                className={`box-border h-[34px] w-[152px] appearance-none border border-[#2A150C] py-0 pr-7 pl-3 text-xs font-normal text-[#2A150C] outline-none ${
-                  step1Done && countryValue !== "" ? "bg-[#FAD5B3]" : "bg-[#FBF6D2]"
+                className={`h-[34px] w-[152px] appearance-none py-0 pr-7 pl-3 text-xs font-normal text-[#2A150C] outline-none ${controlBox} ${
+                  step1Done && countryValue !== "" ? "bg-[#FBF6D2]" : "bg-white"
                 }`}
                 value={step1Done ? countryValue : ""}
                 onChange={(event) => {
@@ -245,7 +246,7 @@ export function LobbyScreen({
           <FieldRow label={text.whatFind} step="2" locked={!laterSteps}>
             <select
               aria-label={text.whatFind}
-              className={`${laterSteps ? fieldClass : fieldLocked} ${categoryChosen ? "bg-[#FAD5B3]" : "bg-[#FBF6D2]"}`}
+              className={`${laterSteps ? fieldClass : fieldLocked} ${categoryChosen ? "bg-[#FBF6D2]" : "bg-white"}`}
               value={category}
               disabled={!laterSteps}
               onChange={(event) => chooseCategory(event.target.value as QuestionCategory)}
@@ -262,7 +263,7 @@ export function LobbyScreen({
           <FieldRow label={text.whatLevel} step="3" locked={!laterSteps}>
             <select
               aria-label={text.whatLevel}
-              className={`${laterSteps ? fieldClass : fieldLocked} ${levelChosen ? "bg-[#FAD5B3]" : "bg-[#FBF6D2]"}`}
+              className={`${laterSteps ? fieldClass : fieldLocked} ${levelChosen ? "bg-[#FBF6D2]" : "bg-white"}`}
               value={state.mapDifficulty}
               disabled={!laterSteps}
               onChange={(event) => {
@@ -283,7 +284,7 @@ export function LobbyScreen({
       <footer className="flex shrink-0 items-center justify-end border-t-[0.5px] border-[#2A150C] px-4 py-2">
         <button
           type="button"
-          className="h-9 min-w-[104px] border border-[#2A150C] bg-[#FAD5B3] px-4 text-sm font-medium text-[#2A150C] disabled:opacity-40"
+          className="h-9 min-w-[104px] rounded-[6px] border-[0.5px] border-[#2A150C] bg-[#FAD5B3] px-4 text-sm font-medium text-[#2A150C] disabled:opacity-40"
           disabled={!step1Done || !quizAvailable}
           onClick={() => onPlay("quiz")}
         >
@@ -448,10 +449,29 @@ function PlayerRow({ name, detail }: { name: string; detail: string }) {
 export function PlayOverlay({ state }: { state: EngineState }) {
   const cityId = state.cityIds[state.roundIndex];
   const city = cityId ? getPlace(cityId) : null;
+  if (!city) return null;
+
+  return (
+    <div className="pointer-events-none absolute top-3 right-3 z-20">
+      <div className="pointer-events-auto">
+        <MuteButton />
+      </div>
+      {state.notice ? (
+        <p className={`${glass} mt-2 max-w-xs px-3 py-2 text-sm text-[#2f4a52]`}>{state.notice}</p>
+      ) : null}
+    </div>
+  );
+}
+
+export function RoundBar({ state, onEnd }: { state: EngineState; onEnd: () => void }) {
+  const cityId = state.cityIds[state.roundIndex];
+  const city = cityId ? getPlace(cityId) : null;
+  const onMap =
+    state.phase === "ROUND_PREVIEW" || state.phase === "GUESSING_ACTIVE" || state.phase === "ROUND_RESULT";
   const part = state.playFormat === "quiz" && state.quizStep === 3 ? 1 : 0;
   const record = state.history.find((round) => round.roundIndex === state.roundIndex && (round.part ?? 0) === part);
-  const showingResult = state.phase === "ROUND_RESULT" && record != null;
-  const guessing = state.phase === "GUESSING_ACTIVE";
+  const showingResult = onMap && state.phase === "ROUND_RESULT" && record != null;
+  const guessing = onMap && state.phase === "GUESSING_ACTIVE";
   const timed = state.mapDifficulty !== "kids";
   const frozen = state.submitted ? (state.localGuess?.timeRemaining ?? 0) : null;
   const now = useNow(timed && guessing && frozen == null && state.guessingEndsAt != null);
@@ -474,6 +494,12 @@ export function PlayOverlay({ state }: { state: EngineState }) {
           ? worldPinLine(text, state.locale, mine, city.name)
           : null
       : null;
+  const line =
+    onMap && city
+      ? showingResult
+        ? (resultLine ?? `${mine?.confirmed ? formatKm(mine.distanceKm) : text.noPin}${note ? ` · ${note}` : ""}`)
+        : pinQuestion(text, city, state)
+      : "\u00a0";
 
   useEffect(() => {
     if (!timed || !guessing || frozen != null) return;
@@ -484,41 +510,33 @@ export function PlayOverlay({ state }: { state: EngineState }) {
     lastSecond.current = second;
   }, [frozen, guessing, remaining, timed]);
 
-  if (!city) return null;
-
   return (
-    <>
-      <div className="pointer-events-none absolute top-3 right-3 z-20">
-        <div className="pointer-events-auto">
-          <MuteButton />
-        </div>
-        {state.notice ? (
-          <p className={`${glass} mt-2 max-w-xs px-3 py-2 text-sm text-[#2f4a52]`}>{state.notice}</p>
-        ) : null}
+    <div className="pointer-events-none absolute bottom-0 left-0 right-0 z-20 px-3 pb-[env(safe-area-inset-bottom)]">
+      <div className={`${glass} pointer-events-auto flex h-14 w-full items-center gap-3 px-3`}>
+        <p className="shrink-0 font-mono text-[11px] uppercase tracking-[0.12em] text-[#2A150C] tabular-nums">
+          {city
+            ? fill(text.round, {
+                current: String(state.roundIndex + 1),
+                total: String(state.cityIds.length),
+              })
+            : "\u00a0"}
+        </p>
+        <p className="min-w-0 flex-1 truncate text-sm font-medium text-[#2A150C]">{line}</p>
+        <p
+          className={`w-12 shrink-0 text-right font-mono text-sm tabular-nums ${urgent ? "text-[#8a3d32]" : "text-[#2A150C]"}`}
+        >
+          {onMap && timed && guessing && state.guessingEndsAt != null ? `${remaining.toFixed(1)}s` : "\u00a0"}
+        </p>
+        <button
+          type="button"
+          onClick={onEnd}
+          aria-label={text.endGame}
+          className="grid h-9 w-9 shrink-0 place-items-center rounded-[6px] border-[0.5px] border-[#2A150C] bg-[#FAD5B3] text-[#2A150C] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#2A150C]"
+        >
+          <LogOut className="h-4 w-4" aria-hidden="true" />
+        </button>
       </div>
-
-      <div className="pointer-events-none absolute bottom-0 left-0 right-36 z-20 px-3 pb-[env(safe-area-inset-bottom)]">
-        <div className={`${glass} pointer-events-auto flex h-14 w-full items-center gap-3 px-3`}>
-          <p className="shrink-0 font-mono text-[11px] uppercase tracking-[0.12em] text-[#2A150C] tabular-nums">
-            {fill(text.round, {
-              current: String(state.roundIndex + 1),
-              total: String(state.cityIds.length),
-            })}
-          </p>
-          <p className="min-w-0 flex-1 truncate text-sm font-medium text-[#2A150C]">
-            {showingResult
-              ? (resultLine ??
-                `${mine?.confirmed ? formatKm(mine.distanceKm) : text.noPin}${note ? ` · ${note}` : ""}`)
-              : pinQuestion(text, city, state)}
-          </p>
-          <p
-            className={`w-12 shrink-0 text-right font-mono text-sm tabular-nums ${urgent ? "text-[#8a3d32]" : "text-[#2A150C]"}`}
-          >
-            {timed && guessing && state.guessingEndsAt != null ? `${remaining.toFixed(1)}s` : ""}
-          </p>
-        </div>
-      </div>
-    </>
+    </div>
   );
 }
 
@@ -575,7 +593,7 @@ export function QuizCard({
                 type="button"
                 disabled={feedback}
                 onClick={() => onChoose(choice)}
-                className={`h-10 shrink-0 truncate rounded-full border px-3 text-sm font-medium ${
+                className={`h-10 shrink-0 truncate rounded-[6px] border-[0.5px] px-3 text-sm font-medium ${
                   right
                     ? "border-[#2A150C] bg-[#E2ECC0] text-[#2A150C]"
                     : wrong

@@ -5,7 +5,7 @@ import { MapStage, type MapArc, type MapPin } from "@/components/map-stage";
 import { approachPoint, countryOutline } from "@/lib/country-shapes";
 import { approachDivision, divisionAt } from "@/lib/provinces";
 import { provinceOutline } from "@/lib/provinces";
-import { FinalScreen, LobbyScreen, MapTitle, PlayOverlay, QuizCard, WaitingScreen } from "@/components/game/screens";
+import { FinalScreen, LobbyScreen, MapTitle, PlayOverlay, QuizCard, RoundBar, WaitingScreen } from "@/components/game/screens";
 import { useRoom } from "@/components/game/use-room";
 import {
   buildLockGuess,
@@ -17,7 +17,6 @@ import {
 } from "@/lib/game-engine";
 import { playClick, playReveal, resumeAudio } from "@/lib/audio";
 import { placesFor } from "@/data/catalog";
-import { messages } from "@/lib/i18n";
 import { COLOR, greatCircleSegments, PREVIEW_MS, RESULT_MS } from "@/lib/geo";
 import { countryAt, loadCountries } from "@/lib/place";
 import type { EngineState, GuessWire, PlayFormat } from "@/lib/game-engine";
@@ -251,11 +250,10 @@ export function GeosenseApp({ playerId }: { playerId: string }) {
     state.phase === "ROUND_PREVIEW" || state.phase === "GUESSING_ACTIVE" || state.phase === "ROUND_RESULT";
   const quizzing = state.phase === "QUIZ_QUESTION" || state.phase === "QUIZ_FEEDBACK";
   const inRound = playing || quizzing;
-  const text = messages(state.locale);
 
   return (
     <main className="relative h-dvh w-full overflow-hidden bg-[#e2f6fe] text-[#2f4a52]">
-      <div className={`absolute top-0 left-0 ${inRound ? "right-36" : "right-0"} ${playing ? "bottom-[calc(3.5rem+env(safe-area-inset-bottom))]" : "bottom-0"}`}>
+      <div className={`absolute top-0 left-0 right-0 ${inRound ? "bottom-[calc(3.5rem+env(safe-area-inset-bottom))]" : "bottom-0"}`}>
       <MapStage
         difficulty={state.mapDifficulty}
         region={mapRegion}
@@ -300,17 +298,7 @@ export function GeosenseApp({ playerId }: { playerId: string }) {
       ) : null}
       </div>
       {playing ? <PlayOverlay state={state} /> : null}
-      {inRound ? (
-        <div className="pointer-events-none absolute inset-y-0 right-0 z-30 flex w-36 items-center px-3">
-          <button
-            type="button"
-            onClick={() => dispatch({ type: "LEAVE" })}
-            className="pointer-events-auto h-10 w-full border border-[#2A150C] bg-[#FAD5B3] text-sm font-medium text-[#2A150C]"
-          >
-            {text.endGame}
-          </button>
-        </div>
-      ) : null}
+      {inRound ? <RoundBar state={state} onEnd={() => dispatch({ type: "LEAVE" })} /> : null}
     </main>
   );
 }
