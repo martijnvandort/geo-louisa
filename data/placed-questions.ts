@@ -150,8 +150,8 @@ export const PLACED_QUESTIONS: PlacedQuestion[] = [
       "world",
       "south-america"
     ],
-    "promptEn": "In which country is Machu Picchu?",
-    "promptNl": "In welk land ligt Machu Picchu?",
+    "promptEn": "In which country is Machu Picchu? Tip: this is the famous Inca city in the Andes.",
+    "promptNl": "In welk land ligt Machu Picchu? Tip: dit is de beroemde Incastrad in de Andes.",
     "answerEn": "Peru",
     "answerNl": "Peru",
     "choicesEn": [
@@ -427,8 +427,8 @@ export const PLACED_QUESTIONS: PlacedQuestion[] = [
       "world",
       "north-america"
     ],
-    "promptEn": "In which country is the ancient city of Chichen Itza?",
-    "promptNl": "In welk land ligt de oude stad Chichen Itza?",
+    "promptEn": "In which country is the ancient city of Chichen Itza? Tip: this Maya city is on the Yucatán Peninsula.",
+    "promptNl": "In welk land ligt de oude stad Chichen Itza? Tip: deze Mayastad ligt op het schiereiland Yucatán.",
     "answerEn": "Mexico",
     "answerNl": "Mexico",
     "choicesEn": [
@@ -627,8 +627,8 @@ export const PLACED_QUESTIONS: PlacedQuestion[] = [
       "world",
       "middle-east"
     ],
-    "promptEn": "In which country is the ancient city of Petra?",
-    "promptNl": "In welk land ligt de oude stad Petra?",
+    "promptEn": "In which country is the ancient city of Petra? Tip: it was carved into red rock and appears in an Indiana Jones film.",
+    "promptNl": "In welk land ligt de oude stad Petra? Tip: de stad is uit rode rots gehouwen en komt voor in een Indiana Jones-film.",
     "answerEn": "Jordan",
     "answerNl": "Jordanië",
     "choicesEn": [
@@ -647,7 +647,7 @@ export const PLACED_QUESTIONS: PlacedQuestion[] = [
   {
     "id": "W031",
     "country": "Cambodia",
-    "level": "Kids",
+    "level": "Adults",
     "maps": [
       "world",
       "asia"

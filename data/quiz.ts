@@ -1,5 +1,6 @@
 import { getPlace, placesFor, quizPlaceMode, type PlaceMode, type PlayPlace } from "@/data/catalog";
 import { footballQuizCard } from "@/data/football";
+import { kidsCapitalTip, kidsCityProvinceTip, kidsLandmarkTip, kidsSkipLandmarkCity } from "@/data/kids-clues";
 import { placedQuizCard } from "@/data/placed-questions";
 import { CITIES } from "@/data/cities";
 import { LANDMARKS, landmarkAllowed, type Landmark } from "@/data/landmarks";
@@ -339,11 +340,21 @@ function cityPlaceLabel(kind: QuizKind, name: string, locale: LocaleId): string 
   return locale === "nl" ? `het land ${country}` : `the country of ${country}`;
 }
 
-export function capitalQuestion(kind: QuizKind, name: string, locale: LocaleId = "en"): string {
+export function capitalQuestion(
+  kind: QuizKind,
+  name: string,
+  locale: LocaleId = "en",
+  difficulty?: "kids" | "normal" | "hard",
+): string {
   const text = messages(locale);
-  if (kind === "province") return fill(text.provinceCapital, { name });
-  if (kind === "state") return fill(text.stateCapital, { name });
-  return fill(text.countryCapital, { name: cityPlaceLabel("country", name, locale) });
+  const base =
+    kind === "province"
+      ? fill(text.provinceCapital, { name })
+      : kind === "state"
+        ? fill(text.stateCapital, { name })
+        : fill(text.countryCapital, { name: cityPlaceLabel("country", name, locale) });
+  if (difficulty !== "kids") return base;
+  return base + kidsCapitalTip(kind, name, locale);
 }
 
 function otherNames(pool: PlayPlace[], place: PlayPlace, take: number, rnd: () => number): string[] {
@@ -468,6 +479,7 @@ function landmarkCard(
   const target = landmarkTarget(place, ask, step);
   const placeAnswer = quizKind(place) === "country" ? bareCountry(place.name) : place.name;
   const fits = fittingLandmarks(place, ask, target).filter((item) => {
+    if (ask.difficulty === "kids" && target === "city" && kidsSkipLandmarkCity(item.id)) return false;
     if (step !== 1) return true;
     const city = landmarkAnswer(item, "city", locale);
     return city !== "" && city !== placeAnswer && city !== place.name;
@@ -490,6 +502,8 @@ function landmarkCard(
       : target === "division"
         ? fill(quizKind(place) === "state" ? text.landmarkState : text.landmarkProvince, { name })
         : fill(text.landmarkCountry, { name });
+  const clued =
+    ask.difficulty === "kids" ? `${prompt}${kidsLandmarkTip(picked.id, target, locale)}` : prompt;
   const correct = landmarkAnswer(picked, target, locale);
   const others = new Set<string>();
   for (const item of LANDMARKS) {
@@ -512,7 +526,7 @@ function landmarkCard(
   }
   const distractors = shuffle([...others], rnd).slice(0, 2);
   if (distractors.length < 2 || !correct) return null;
-  return { prompt, choices: shuffle([correct, ...distractors], rnd), correct };
+  return { prompt: clued, choices: shuffle([correct, ...distractors], rnd), correct };
 }
 
 /** Step 0 asks for the capital. Step 1 asks about a different city, never the capital again. */
@@ -523,6 +537,7 @@ function classicQuizCard(
   place: PlayPlace,
   pool: PlayPlace[],
   locale: LocaleId,
+  difficulty?: "kids" | "normal" | "hard",
 ): QuizCard {
   const rnd = mulberry32((seed + roundIndex * 17 + step * 3) >>> 0);
   const kind = quizKind(place);
@@ -531,7 +546,7 @@ function classicQuizCard(
   const label = cityPlaceLabel(kind, place.name, locale);
   if (step === 0) {
     return {
-      prompt: capitalQuestion(kind, place.name, locale),
+      prompt: capitalQuestion(kind, place.name, locale, difficulty),
       choices: capitalChoices(seed, roundIndex, place, pool),
       correct: capital,
     };
@@ -575,6 +590,7 @@ function chainItem(seed: number, roundIndex: number, place: PlayPlace, ask: Quiz
   const difficulty = ask.difficulty ?? "normal";
   const fits = LANDMARKS.filter((item) => {
     if (!item.city || !item.division || item.division !== place.name) return false;
+    if (difficulty === "kids" && kidsSkipLandmarkCity(item.id)) return false;
     if (!item.maps.includes(region)) return false;
     return landmarkAllowed(item.level, difficulty);
   });
@@ -618,8 +634,12 @@ function reverseChainCard(
     ).map((candidate) => (locale === "nl" && candidate.cityNl ? candidate.cityNl : candidate.city ?? ""));
     const choices = chainChoices(city, others, rnd);
     if (!choices) return null;
+    const cityPrompt =
+      ask.difficulty === "kids"
+        ? `${fill(text.cityIsPlace, { name })}${kidsLandmarkTip(item.id, "city", locale)}`
+        : fill(text.cityIsPlace, { name });
     return {
-      prompt: fill(text.cityIsPlace, { name }),
+      prompt: cityPrompt,
       choices,
       correct: city,
       detail: locale === "nl" ? item.detailNl : item.detailEn,
@@ -630,10 +650,14 @@ function reverseChainCard(
   ).map((candidate) => candidate.division ?? "");
   const choices = chainChoices(item.division, others, rnd);
   if (!choices) return null;
-  const prompt =
+  const provincePrompt =
     item.divisionKind === "state"
       ? fill(text.stateOfCity, { city })
       : fill(text.provinceOfCity, { city });
+  const prompt =
+    ask.difficulty === "kids" && item.divisionKind !== "state"
+      ? `${provincePrompt}${kidsCityProvinceTip(city, locale)}`
+      : provincePrompt;
   return { prompt, choices, correct: item.division, detail: locale === "nl" ? item.detailNl : item.detailEn };
 }
 
@@ -650,7 +674,7 @@ export function quizCard(
   const asked = ask ?? {};
   const chained = reverseChainCard(seed, roundIndex, step, place, locale, asked);
   if (chained) return chained;
-  const classic = () => classicQuizCard(seed, roundIndex, step, place, pool, locale);
+  const classic = () => classicQuizCard(seed, roundIndex, step, place, pool, locale, asked.difficulty);
   const category = ask?.category;
   if (category === "football") {
     return footballQuizCard(place.id, locale, seed, roundIndex) ?? classic();
@@ -659,7 +683,7 @@ export function quizCard(
   if (category === "landmarks" || category === "provinces" || category === "states") {
     const card = landmarkCard(seed, roundIndex, step, place, pool, locale, ask ?? {}) ?? classic();
     if (step === 0) return card;
-    const first = landmarkCard(seed, roundIndex, 0, place, pool, locale, ask ?? {}) ?? classicQuizCard(seed, roundIndex, 0, place, pool, locale);
+    const first = landmarkCard(seed, roundIndex, 0, place, pool, locale, ask ?? {}) ?? classicQuizCard(seed, roundIndex, 0, place, pool, locale, asked.difficulty);
     if (card.correct === first.correct) return classic();
     return card;
   }

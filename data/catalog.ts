@@ -179,11 +179,13 @@ function mulberry32(seed: number) {
 }
 
 /** Up to ten unique places. A shorter list is played once. An empty list stays empty. */
-export function pickPlaceIds(seed: number, mapId: string, mode: PlaceMode): string[] {
+export function pickPlaceIds(seed: number, mapId: string, mode: PlaceMode, exclude: ReadonlySet<string> = new Set()): string[] {
   if (mode === "capitals" && isBuiltin(mapId)) {
     return pickCityIds(seed, ROUNDS, mapId);
   }
-  const pool = placesFor(mapId, mode).map((place) => place.id);
+  const pool = placesFor(mapId, mode)
+    .map((place) => place.id)
+    .filter((id) => !exclude.has(id));
   const rng = mulberry32(seed);
   const picked: string[] = [];
   const take = Math.min(ROUNDS, pool.length);

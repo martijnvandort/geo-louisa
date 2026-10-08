@@ -301,10 +301,15 @@ function beginMatch(
   format: PlayFormat = "pin",
 ): EngineState {
   const idsMode = format === "quiz" ? quizPlaceMode(region) : placeMode;
+  const skipAlaskaCapital =
+    format === "quiz" &&
+    difficulty === "kids" &&
+    region === "united-states" &&
+    (state.questionCategory === "all" || state.questionCategory === "state-capitals");
   const cityIds =
     state.questionCategory === "football"
       ? pickFootballIds(seed, region, state.mapDifficulty).map((id) => `football:${id}`)
-      : pickPlaceIds(seed, region, idsMode);
+      : pickPlaceIds(seed, region, idsMode, skipAlaskaCapital ? new Set(["united-states:province:alaska"]) : undefined);
   if (cityIds.length === 0) return state;
   const localName = displayName(state.nickname, state.mode === "solo" ? "You" : state.isHost ? "Host" : "Guest");
   const next: EngineState = {
