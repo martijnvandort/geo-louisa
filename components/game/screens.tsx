@@ -15,7 +15,7 @@ import { formatKm, formatScore, GUESS_MS } from "@/lib/geo";
 import { placeNote } from "@/lib/place";
 import { isMuted, playTick, setMuted } from "@/lib/audio";
 
-const glass = "rounded-2xl border border-[#2A150C] bg-[#FBF6D2] text-[#2A150C] shadow-[0_10px_28px_rgba(42,21,12,0.12)]";
+const glass = "rounded-2xl border border-[#2A150C] bg-[#E2ECC0] text-[#2A150C] shadow-[0_10px_28px_rgba(42,21,12,0.12)]";
 
 function MuteButton() {
   const [muted, setMutedState] = useState(false);
@@ -90,9 +90,9 @@ const uiFace = "[font-family:var(--font-ui),DM_Sans,sans-serif]";
 const displayFace = "[font-family:var(--font-display),Cormorant_Garamond,serif]";
 const questionType = `min-w-0 text-2xl leading-[1.15] font-normal tracking-[-0.005em] text-balance ${displayFace}`;
 const ink = "text-[#2A150C]";
-const fieldMetric = `h-[34px] w-[152px] shrink-0 appearance-none border bg-[#FFC2AA] py-1.5 pr-7 pl-3 text-right text-[15px] outline-none ${displayFace}`;
+const fieldMetric = `h-[34px] w-[152px] shrink-0 appearance-none border bg-[#E2ECC0] py-1.5 pr-7 pl-3 text-right text-[15px] outline-none ${displayFace}`;
 const fieldClass = `${fieldMetric} border-[#2A150C] text-[#2A150C] focus:border-[#2A150C]`;
-const fieldLocked = `${fieldMetric} border-[#7A4E28] bg-[#FBF6D2] text-[#7A4E28]`;
+const fieldLocked = `${fieldMetric} border-[#7A4E28] bg-[#E2ECC0] text-[#7A4E28]`;
 
 const LEVELS: { id: MapDifficulty; label: "kids" | "adults" | "smartAdults" }[] = [
   { id: "kids", label: "kids" },
@@ -171,11 +171,11 @@ export function LobbyScreen({
         : text.levelNoteMedium;
 
   return (
-    <div className={`pointer-events-auto absolute top-0 bottom-0 left-0 z-20 flex h-dvh w-[min(480px,calc(100%-48px))] flex-col bg-[#FBF6D2] text-[#2A150C] ${uiFace}`}>
+    <div className={`pointer-events-auto absolute top-0 bottom-0 left-0 z-20 flex h-dvh w-[min(480px,calc(100%-48px))] flex-col bg-[#E2ECC0] text-[#2A150C] ${uiFace}`}>
       <header className="flex h-12 shrink-0 items-center justify-end border-b-[0.5px] border-[#2A150C] px-4">
         <label className={ink}>
           <span className="sr-only">{text.language}</span>
-          <span className="flex items-center gap-1.5 border-[0.5px] border-[#2A150C] bg-[#FFC2AA] px-2 py-1 text-xs">
+          <span className="flex items-center gap-1.5 border-[0.5px] border-[#2A150C] bg-[#E2ECC0] px-2 py-1 text-xs">
             <Globe className="h-3.5 w-3.5" aria-hidden="true" />
             <select
               aria-label={text.language}
@@ -210,8 +210,8 @@ export function LobbyScreen({
                   onClick={() => chooseMap(choice.id)}
                   className={`h-[34px] border-[0.5px] px-3 text-xs text-[#2A150C] transition-colors ${
                     selected
-                      ? "border-[#2A150C] bg-[#F8AFAF] font-semibold"
-                      : "border-[#2A150C] bg-[#FFC2AA] font-normal hover:bg-[#F8AFAF]"
+                      ? "border-[#2A150C] bg-[#FBF6D2] font-semibold"
+                      : "border-[#2A150C] bg-[#FBF6D2] font-normal"
                   }`}
                 >
                   {text[choice.label]}
@@ -223,8 +223,8 @@ export function LobbyScreen({
                 aria-label={text.orCountry}
                 className={`h-[34px] appearance-none border-[0.5px] py-0 pr-7 pl-3 text-xs text-[#2A150C] outline-none ${
                   step1Done && countryValue !== ""
-                    ? "border-[#2A150C] bg-[#F8AFAF] font-semibold"
-                    : "border-[#2A150C] bg-[#FFC2AA] font-normal"
+                    ? "border-[#2A150C] bg-[#E2ECC0] font-semibold"
+                    : "border-[#2A150C] bg-[#E2ECC0] font-normal"
                 }`}
                 value={step1Done ? countryValue : ""}
                 onChange={(event) => {
