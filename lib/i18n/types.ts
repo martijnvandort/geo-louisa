@@ -13,6 +13,7 @@ export type Messages = {
   whatCategory: string;
   categoryAll: string;
   categoryLandmarks: string;
+  categoryFootball: string;
   categoryProvinces: string;
   categoryProvinceCapitals: string;
   categoryStates: string;
@@ -56,6 +57,8 @@ export type Messages = {
   whereIsProvince: string;
   whereIsState: string;
   whereIsCity: string;
+  whereIsStadium: string;
+  whereIsPlace: string;
   pinWasIn: string;
   pinWasAway: string;
   pinWasOcean: string;

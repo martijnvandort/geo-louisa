@@ -1,4 +1,5 @@
 import { getPlace, placesFor, quizPlaceMode, type PlaceMode, type PlayPlace } from "@/data/catalog";
+import { footballQuizCard } from "@/data/football";
 import { CITIES } from "@/data/cities";
 import { LANDMARKS, landmarkAllowed, type Landmark } from "@/data/landmarks";
 import type { QuestionCategory } from "@/data/question-categories";
@@ -10,6 +11,7 @@ export type QuizCard = {
   prompt: string;
   choices: string[];
   correct: string;
+  detail?: string;
 };
 
 export type QuizAsk = {
@@ -571,6 +573,9 @@ export function quizCard(
 ): QuizCard {
   const classic = () => classicQuizCard(seed, roundIndex, step, place, pool, locale);
   const category = ask?.category;
+  if (category === "football") {
+    return footballQuizCard(place.id, locale, seed, roundIndex) ?? classic();
+  }
   if (!category || category === "capitals" || category === "province-capitals" || category === "state-capitals") return classic();
   if (category === "landmarks" || category === "provinces" || category === "states") {
     const card = landmarkCard(seed, roundIndex, step, place, pool, locale, ask ?? {}) ?? classic();

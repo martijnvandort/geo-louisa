@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import { motion } from "framer-motion";
 import { ChevronDown, Copy, Globe, LogOut, Trophy, Volume2, VolumeX } from "lucide-react";
 import { placeCount, quizPlaceMode, getPlace, type PlaceMode } from "@/data/catalog";
+import { footballById, footballCount } from "@/data/football";
 import { QUESTION_CATEGORY_LABEL, categoryForMap, questionCategoriesFor, type QuestionCategory } from "@/data/question-categories";
 import { quizCard, quizPool } from "@/data/quiz";
 import { useNow } from "@/components/game/count-up";
@@ -130,7 +131,10 @@ export function LobbyScreen({
   onJoin: (code: string) => void;
 }) {
   const text = messages(state.locale);
-  const quizAvailable = placeCount(state.region, quizPlaceMode(state.region)) > 0;
+  const quizAvailable =
+    state.questionCategory === "football"
+      ? footballCount(state.region, state.mapDifficulty) > 0
+      : placeCount(state.region, quizPlaceMode(state.region)) > 0;
   const locale = state.locale === "nl" ? "nl" : "en";
   const byName = (a: { label: keyof Messages }, b: { label: keyof Messages }) =>
     text[a.label].localeCompare(text[b.label], locale);
@@ -400,6 +404,17 @@ function pinKind(city: { id: string }, state: EngineState): "country" | "provinc
 }
 
 function pinQuestion(text: ReturnType<typeof messages>, city: { id: string; name: string; capitalName?: string }, state: EngineState): string {
+  if (city.id.startsWith("football:")) {
+    const item = footballById(city.id);
+    if (item) {
+      const name = state.locale === "nl" ? item.pinNameNl : item.pinNameEn;
+      if (item.pinKind === "stadium") {
+        if (/stadium|stadion/i.test(name)) return fill(text.whereIsPlace, { name });
+        return fill(text.whereIsStadium, { name });
+      }
+      return fill(text.whereIsCity, { name });
+    }
+  }
   const kind = pinKind(city, state);
   const name =
     kind === "city"
@@ -568,7 +583,7 @@ export function QuizCard({
 
   return (
     <div className="absolute inset-0 z-20 flex items-center justify-center p-4">
-      <section className={`${glass} flex h-[24.5rem] w-full max-w-md flex-col p-5`}>
+      <section className={`${glass} flex ${state.questionCategory === "football" ? "h-[31.25rem]" : "h-[24.5rem]"} w-full max-w-md flex-col p-5`}>
         <p className="h-5 font-mono text-[11px] leading-5 uppercase tracking-[0.16em] text-[#2f4a52] tabular-nums">
           {fill(text.round, {
             current: String(state.roundIndex + 1),
@@ -576,7 +591,7 @@ export function QuizCard({
           })}
           <span> · {fill(text.points, { score: formatScore(matchTotal(state)) })}</span>
         </p>
-        <p className="mt-3 h-[5.25rem] text-lg leading-7 font-medium text-[#2f4a52]">{card.prompt}</p>
+        <p className={`mt-3 ${state.questionCategory === "football" ? "h-[7rem]" : "h-[5.25rem]"} text-lg leading-7 font-medium text-[#2f4a52]`}>{card.prompt}</p>
         <p
           className={`mt-1 h-5 font-mono text-sm leading-5 tabular-nums ${remaining != null && remaining <= 2 ? "text-[#8a3d32]" : "text-[#2f4a52]"}`}
         >
@@ -606,6 +621,9 @@ export function QuizCard({
             );
           })}
         </div>
+        {state.questionCategory === "football" ? (
+          <p className="mt-3 h-20 overflow-hidden text-sm leading-5 text-[#2A150C]">{feedback && card.detail ? card.detail : "\u00a0"}</p>
+        ) : null}
       </section>
     </div>
   );

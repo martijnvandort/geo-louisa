@@ -1,4 +1,5 @@
 import { getPlace, pickPlaceIds, quizPlaceMode, type PlaceMode, type PlayPlace } from "@/data/catalog";
+import { pickFootballIds } from "@/data/football";
 import type { QuestionCategory } from "@/data/question-categories";
 import { quizCard, quizPool } from "@/data/quiz";
 import { distanceToCountryKm } from "@/lib/country-shapes";
@@ -300,7 +301,10 @@ function beginMatch(
   format: PlayFormat = "pin",
 ): EngineState {
   const idsMode = format === "quiz" ? quizPlaceMode(region) : placeMode;
-  const cityIds = pickPlaceIds(seed, region, idsMode);
+  const cityIds =
+    state.questionCategory === "football"
+      ? pickFootballIds(seed, region, state.mapDifficulty).map((id) => `football:${id}`)
+      : pickPlaceIds(seed, region, idsMode);
   if (cityIds.length === 0) return state;
   const localName = displayName(state.nickname, state.mode === "solo" ? "You" : state.isHost ? "Host" : "Guest");
   const next: EngineState = {
@@ -364,6 +368,20 @@ export function reducer(state: EngineState, action: Action): EngineState {
     case "QUIZ_ADVANCE": {
       if (state.phase !== "QUIZ_FEEDBACK" || state.playFormat !== "quiz") return state;
       if (state.quizStep === 0) {
+        if (state.questionCategory === "football") {
+          return {
+            ...state,
+            phase: "GUESSING_ACTIVE",
+            quizStep: 3,
+            quizChoice: null,
+            quizCorrect: null,
+            submitted: false,
+            pin: null,
+            localGuess: null,
+            guessingEndsAt: endsAt(state, action.now),
+            resultStartedAt: null,
+          };
+        }
         return {
           ...state,
           phase: "QUIZ_QUESTION",

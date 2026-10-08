@@ -1,4 +1,5 @@
 import { CITIES, regionCapitals, pickCityIds, type CityPool } from "@/data/cities";
+import { footballPlayPlace } from "@/data/football";
 import { COUNTRY_PACKS, type BuiltinMapId, type CountryPack, type PlacePoint } from "@/data/countries";
 import { CONTINENT_IDS } from "@/data/regions";
 import { ROUNDS } from "@/lib/geo";
@@ -204,6 +205,10 @@ for (const mapId of [...BUILTIN_IDS, ...COUNTRY_PACKS.map((pack) => pack.id)]) {
 }
 
 export function getPlace(id: string): PlayPlace {
+  if (id.startsWith("football:")) {
+    const football = footballPlayPlace(id);
+    if (football) return football;
+  }
   const place = BY_ID.get(id);
   if (!place) throw new Error(`Unknown place: ${id}`);
   return place;

@@ -8,7 +8,8 @@ export type QuestionCategory =
   | "provinces"
   | "province-capitals"
   | "states"
-  | "state-capitals";
+  | "state-capitals"
+  | "football";
 
 export const QUESTION_CATEGORY_LABEL = {
   all: "categoryAll",
@@ -18,6 +19,7 @@ export const QUESTION_CATEGORY_LABEL = {
   "province-capitals": "categoryProvinceCapitals",
   states: "categoryStates",
   "state-capitals": "categoryStateCapitals",
+  football: "categoryFootball",
 } as const;
 
 function regionHasLandmarks(region: string): boolean {
@@ -31,6 +33,7 @@ export function questionCategoriesFor(region: string): QuestionCategory[] {
   if (region === "netherlands") categories.push("provinces", "province-capitals");
   else if (region === "united-states") categories.push("states", "state-capitals");
   else if (region !== "world") categories.push("capitals");
+  categories.push("football");
   return categories;
 }
 

@@ -122,9 +122,10 @@ export function GeosenseApp({ playerId }: { playerId: string }) {
 
   useEffect(() => {
     if (state.phase !== "QUIZ_FEEDBACK") return;
-    const timer = window.setTimeout(() => dispatch({ type: "QUIZ_ADVANCE", now: Date.now() }), 1400);
+    const wait = state.questionCategory === "football" ? 4500 : 1400;
+    const timer = window.setTimeout(() => dispatch({ type: "QUIZ_ADVANCE", now: Date.now() }), wait);
     return () => window.clearTimeout(timer);
-  }, [state.phase, state.quizStep, state.roundIndex]);
+  }, [state.phase, state.questionCategory, state.quizStep, state.roundIndex]);
 
   useEffect(() => {
     if (state.phase !== "ROUND_RESULT") return;
