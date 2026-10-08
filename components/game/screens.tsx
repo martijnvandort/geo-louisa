@@ -90,9 +90,9 @@ const uiFace = "[font-family:var(--font-ui),DM_Sans,sans-serif]";
 const displayFace = "[font-family:var(--font-display),Cormorant_Garamond,serif]";
 const questionType = `min-w-0 text-2xl leading-[1.15] font-normal tracking-[-0.005em] text-balance ${displayFace}`;
 const ink = "text-[#2A150C]";
-const fieldMetric = `h-[34px] w-[152px] shrink-0 appearance-none border bg-[#E2ECC0] py-1.5 pr-7 pl-3 text-right text-[15px] outline-none ${displayFace}`;
-const fieldClass = `${fieldMetric} border-[#2A150C] text-[#2A150C] focus:border-[#2A150C]`;
-const fieldLocked = `${fieldMetric} border-[#7A4E28] bg-[#E2ECC0] text-[#7A4E28]`;
+const fieldMetric = `box-border h-[34px] w-[152px] shrink-0 appearance-none border border-[#2A150C] py-0 pr-7 pl-3 text-right text-[15px] font-normal leading-[34px] outline-none ${displayFace}`;
+const fieldClass = `${fieldMetric} text-[#2A150C]`;
+const fieldLocked = `${fieldMetric} text-[#7A4E28]`;
 
 const LEVELS: { id: MapDifficulty; label: "kids" | "adults" | "smartAdults" }[] = [
   { id: "kids", label: "kids" },
@@ -136,6 +136,8 @@ export function LobbyScreen({
   const regions = REGIONS.slice().sort(byName);
   const countries = COUNTRIES.slice().sort(byName);
   const [step1Done, setStep1Done] = useState(false);
+  const [categoryChosen, setCategoryChosen] = useState(false);
+  const [levelChosen, setLevelChosen] = useState(false);
   const regionValue = REGIONS.some((choice) => choice.id === state.region) ? state.region : "";
   const countryValue = COUNTRIES.some((choice) => choice.id === state.region) ? state.region : "";
   const category = categoryForMap(state.questionCategory, state.region);
@@ -149,6 +151,7 @@ export function LobbyScreen({
   }, [category, onPlaceMode, onQuestionCategory, state.placeMode, state.questionCategory, state.region]);
 
   function chooseCategory(next: QuestionCategory) {
+    setCategoryChosen(true);
     onQuestionCategory(next);
     const mode = placeModeFor(next, state.region);
     if (mode !== state.placeMode) onPlaceMode(mode);
@@ -208,23 +211,19 @@ export function LobbyScreen({
                   type="button"
                   aria-pressed={selected}
                   onClick={() => chooseMap(choice.id)}
-                  className={`h-[34px] border-[0.5px] px-3 text-xs text-[#2A150C] transition-colors ${
-                    selected
-                      ? "border-[#2A150C] bg-[#FBF6D2] font-semibold"
-                      : "border-[#2A150C] bg-[#FBF6D2] font-normal"
+                  className={`box-border h-[34px] shrink-0 whitespace-nowrap border border-[#2A150C] px-3 text-xs font-normal text-[#2A150C] ${
+                    selected ? "bg-[#FAD5B3]" : "bg-[#FBF6D2]"
                   }`}
                 >
                   {text[choice.label]}
                 </button>
               );
             })}
-            <span className="relative">
+            <span className="relative shrink-0">
               <select
                 aria-label={text.orCountry}
-                className={`h-[34px] appearance-none border-[0.5px] py-0 pr-7 pl-3 text-xs text-[#2A150C] outline-none ${
-                  step1Done && countryValue !== ""
-                    ? "border-[#2A150C] bg-[#E2ECC0] font-semibold"
-                    : "border-[#2A150C] bg-[#E2ECC0] font-normal"
+                className={`box-border h-[34px] w-[152px] appearance-none border border-[#2A150C] py-0 pr-7 pl-3 text-xs font-normal text-[#2A150C] outline-none ${
+                  step1Done && countryValue !== "" ? "bg-[#FAD5B3]" : "bg-[#FBF6D2]"
                 }`}
                 value={step1Done ? countryValue : ""}
                 onChange={(event) => {
@@ -246,7 +245,7 @@ export function LobbyScreen({
           <FieldRow label={text.whatFind} step="2" locked={!laterSteps}>
             <select
               aria-label={text.whatFind}
-              className={laterSteps ? fieldClass : fieldLocked}
+              className={`${laterSteps ? fieldClass : fieldLocked} ${categoryChosen ? "bg-[#FAD5B3]" : "bg-[#FBF6D2]"}`}
               value={category}
               disabled={!laterSteps}
               onChange={(event) => chooseCategory(event.target.value as QuestionCategory)}
@@ -263,10 +262,13 @@ export function LobbyScreen({
           <FieldRow label={text.whatLevel} step="3" locked={!laterSteps}>
             <select
               aria-label={text.whatLevel}
-              className={laterSteps ? fieldClass : fieldLocked}
+              className={`${laterSteps ? fieldClass : fieldLocked} ${levelChosen ? "bg-[#FAD5B3]" : "bg-[#FBF6D2]"}`}
               value={state.mapDifficulty}
               disabled={!laterSteps}
-              onChange={(event) => onDifficulty(event.target.value as MapDifficulty)}
+              onChange={(event) => {
+                setLevelChosen(true);
+                onDifficulty(event.target.value as MapDifficulty);
+              }}
             >
               {LEVELS.map((choice) => (
                 <option key={choice.id} value={choice.id}>
@@ -275,7 +277,7 @@ export function LobbyScreen({
               ))}
             </select>
           </FieldRow>
-          <p className={`text-right text-xs ${laterSteps ? "text-[#5C3014]" : "text-[#7A4E28]"}`}>{levelNote}</p>
+          <p className={`h-4 text-right text-xs leading-4 ${laterSteps ? "text-[#5C3014]" : "text-[#7A4E28]"}`}>{levelNote}</p>
         </div>
       </div>
       <footer className="flex shrink-0 items-center justify-end border-t-[0.5px] border-[#2A150C] px-4 py-2">

@@ -243,6 +243,9 @@ export function GeosenseApp({ playerId }: { playerId: string }) {
   }, []);
 
   const presentation = useMemo(() => presentationFrom(state), [state]);
+  const lobbyMap = useRef(state.region);
+  if (state.phase !== "LOBBY") lobbyMap.current = state.region;
+  const mapRegion = state.phase === "LOBBY" ? lobbyMap.current : state.region;
 
   const playing =
     state.phase === "ROUND_PREVIEW" || state.phase === "GUESSING_ACTIVE" || state.phase === "ROUND_RESULT";
@@ -255,7 +258,7 @@ export function GeosenseApp({ playerId }: { playerId: string }) {
       <div className={`absolute top-0 left-0 ${inRound ? "right-36" : "right-0"} ${playing ? "bottom-[calc(3.5rem+env(safe-area-inset-bottom))]" : "bottom-0"}`}>
       <MapStage
         difficulty={state.mapDifficulty}
-        region={state.region}
+        region={mapRegion}
         interactive={state.phase === "GUESSING_ACTIVE" && !state.submitted}
         pins={presentation.pins}
         arcs={presentation.arcs}
