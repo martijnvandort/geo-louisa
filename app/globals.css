@@ -1,0 +1,96 @@
+@import "tailwindcss";
+
+:root {
+  --background: #e2f6fe;
+  --foreground: #2f4a52;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+html,
+body {
+  height: 100%;
+  background: #e2f6fe;
+  color: #2f4a52;
+}
+
+body {
+  font-family: var(--font-geist-sans), Inter, ui-sans-serif, system-ui, sans-serif;
+  overflow: hidden;
+}
+
+.geosense-pin {
+  position: relative;
+  width: 22px;
+  height: 22px;
+}
+
+.geosense-pin-dot {
+  position: absolute;
+  inset: 4px;
+  border-radius: 999px;
+  background: var(--pin);
+  border: 2px solid #2f4a52;
+  box-shadow: 0 0 0 1px rgb(226 246 254 / 0.9);
+}
+
+.geosense-capital {
+  width: 14px;
+  height: 14px;
+}
+
+.geosense-capital .geosense-pin-dot {
+  inset: 2px;
+  border-width: 1.5px;
+}
+
+.geosense-beacon .geosense-pin-dot {
+  inset: 3px;
+  box-shadow: 0 0 16px var(--pin);
+}
+
+.geosense-pin-pulse {
+  position: absolute;
+  inset: 0;
+  border-radius: 999px;
+  border: 2px solid var(--pin);
+  animation: geosense-pulse 1.6s ease-out infinite;
+}
+
+.geosense-pin-pulse-delay {
+  animation-delay: 0.8s;
+}
+
+@keyframes geosense-pulse {
+  0% {
+    transform: scale(0.45);
+    opacity: 0.85;
+  }
+  100% {
+    transform: scale(1.85);
+    opacity: 0;
+  }
+}
+
+.maplibregl-ctrl-bottom-right,
+.mapboxgl-ctrl-bottom-right,
+.maplibregl-ctrl-bottom-left,
+.mapboxgl-ctrl-bottom-left {
+  bottom: 0.75rem;
+}
+
+.maplibregl-canvas {
+  background: #e2f6fe;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .geosense-pin-pulse {
+    animation: none;
+    opacity: 0.7;
+  }
+}
