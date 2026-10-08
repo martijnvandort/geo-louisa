@@ -1,5 +1,6 @@
 import { getPlace, placesFor, quizPlaceMode, type PlaceMode, type PlayPlace } from "@/data/catalog";
 import { footballQuizCard } from "@/data/football";
+import { placedQuizCard } from "@/data/placed-questions";
 import { CITIES } from "@/data/cities";
 import { LANDMARKS, landmarkAllowed, type Landmark } from "@/data/landmarks";
 import type { QuestionCategory } from "@/data/question-categories";
@@ -636,7 +637,7 @@ function reverseChainCard(
   return { prompt, choices, correct: item.division, detail: locale === "nl" ? item.detailNl : item.detailEn };
 }
 
-/** Without a category, the two classic questions stay as they are. All mixes those with landmarks. */
+/** Without a category, the two classic questions stay as they are. All mixes those with landmarks and the placed country questions. */
 export function quizCard(
   seed: number,
   roundIndex: number,
@@ -665,6 +666,17 @@ export function quizCard(
   const choices = [classic()];
   const landmark = landmarkCard(seed, roundIndex, step, place, pool, locale, ask ?? {});
   if (landmark) choices.push(landmark);
+  const placed = placedQuizCard({
+    country: bareCountry(quizKind(place) === "country" ? place.name : place.country),
+    kind: quizKind(place),
+    step,
+    region: asked.region ?? "world",
+    difficulty: asked.difficulty ?? "normal",
+    locale,
+    seed,
+    roundIndex,
+  });
+  if (placed) choices.push(placed);
   let open = choices;
   if (step === 1) {
     const previous = quizCard(seed, roundIndex, 0, place, pool, locale, ask);
