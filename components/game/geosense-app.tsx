@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useReducer, useRef } from "react";
 import { MapStage, type MapArc, type MapPin } from "@/components/map-stage";
 import { approachPoint, countryOutline } from "@/lib/country-shapes";
+import { approachDivision, divisionAt } from "@/lib/provinces";
 import { provinceOutline } from "@/lib/provinces";
 import { FinalScreen, LobbyScreen, MapTitle, PlayOverlay, QuizCard, WaitingScreen } from "@/components/game/screens";
 import { useRoom } from "@/components/game/use-room";
@@ -16,6 +17,7 @@ import {
 } from "@/lib/game-engine";
 import { playClick, playReveal, resumeAudio } from "@/lib/audio";
 import { placesFor } from "@/data/catalog";
+import { messages } from "@/lib/i18n";
 import { COLOR, greatCircleSegments, PREVIEW_MS, RESULT_MS } from "@/lib/geo";
 import { countryAt, loadCountries } from "@/lib/place";
 import type { EngineState, GuessWire, PlayFormat } from "@/lib/game-engine";
@@ -209,7 +211,10 @@ export function GeosenseApp({ playerId }: { playerId: string }) {
     resumeAudio();
     playClick();
     const now = Date.now();
-    void countryAt(coordinates).then((place) => {
+    const locate = current.region === "netherlands" || current.region === "united-states"
+      ? Promise.resolve(divisionAt(current.region, coordinates))
+      : countryAt(coordinates);
+    void locate.then((place) => {
       const latest = stateRef.current;
       if (latest.phase !== "GUESSING_ACTIVE" || latest.submitted) return;
       if (latest.playFormat === "quiz") {
@@ -242,9 +247,12 @@ export function GeosenseApp({ playerId }: { playerId: string }) {
   const playing =
     state.phase === "ROUND_PREVIEW" || state.phase === "GUESSING_ACTIVE" || state.phase === "ROUND_RESULT";
   const quizzing = state.phase === "QUIZ_QUESTION" || state.phase === "QUIZ_FEEDBACK";
+  const inRound = playing || quizzing;
+  const text = messages(state.locale);
 
   return (
     <main className="relative h-dvh w-full overflow-hidden bg-[#e2f6fe] text-[#2f4a52]">
+      <div className={`absolute top-0 left-0 ${inRound ? "right-36" : "right-0"} ${playing ? "bottom-[calc(3.5rem+env(safe-area-inset-bottom))]" : "bottom-0"}`}>
       <MapStage
         difficulty={state.mapDifficulty}
         region={state.region}
@@ -282,14 +290,23 @@ export function GeosenseApp({ playerId }: { playerId: string }) {
         <QuizCard
           state={state}
           onChoose={(choice) => dispatch({ type: "QUIZ_CHOOSE", choice })}
-          onStop={() => dispatch({ type: "LEAVE" })}
         />
-      ) : null}
-      {playing ? (
-        <PlayOverlay state={state} onStop={() => dispatch({ type: "LEAVE" })} />
       ) : null}
       {state.phase === "FINAL_RESULTS" ? (
         <FinalScreen state={state} onAgain={() => dispatch({ type: "PLAY_AGAIN" })} />
+      ) : null}
+      </div>
+      {playing ? <PlayOverlay state={state} /> : null}
+      {inRound ? (
+        <div className="pointer-events-none absolute inset-y-0 right-0 z-30 flex w-36 items-center px-3">
+          <button
+            type="button"
+            onClick={() => dispatch({ type: "LEAVE" })}
+            className="pointer-events-auto h-10 w-full border border-[#2A150C] bg-[#FAD5B3] text-sm font-medium text-[#2A150C]"
+          >
+            {text.endGame}
+          </button>
+        </div>
       ) : null}
     </main>
   );
@@ -354,16 +371,20 @@ function presentationFrom(state: EngineState): { pins: MapPin[]; arcs: MapArc[];
         coordinates: guess.coordinates,
         color: mine ? COLOR.player : COLOR.opponent,
       });
-      const worldCountry = state.region === "world" && city.id.includes(":country:");
+      const divisionArea = areaRound && city.id.includes(":province:");
+      if (divisionArea) continue;
+      const area = city.id.includes(":country:") || city.id.includes(":province:");
       const borderPoint =
-        worldCountry && (guess.distanceKm ?? 0) > 0 ? approachPoint(city.name, guess.coordinates) : null;
-      if (!areaRound || borderPoint) {
-        arcs.push({
-          id: `${guess.playerId}-${state.roundIndex}`,
-          color: mine ? COLOR.player : COLOR.opponent,
-          segments: greatCircleSegments(guess.coordinates, borderPoint ?? city.coordinates),
-        });
-      }
+        area && (guess.distanceKm ?? 0) > 0
+          ? city.id.includes(":province:")
+            ? approachDivision(city.name, guess.coordinates)
+            : approachPoint(city.name, guess.coordinates)
+          : null;
+      arcs.push({
+        id: `${guess.playerId}-${state.roundIndex}`,
+        color: mine ? COLOR.player : COLOR.opponent,
+        segments: greatCircleSegments(guess.coordinates, borderPoint ?? city.coordinates),
+      });
     }
   }
 

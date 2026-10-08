@@ -27,6 +27,29 @@ export function provinceOutline(name: string): ProvinceFeature | null {
   return BY_NAME.get(name) ?? null;
 }
 
+/** The province or state drawn under this point, on a country map. */
+export function divisionAt(region: string, coordinates: [number, number]): string | null {
+  const collection = DIVISIONS[region];
+  if (!collection) return null;
+  const probe = point(coordinates);
+  for (const feature of collection.features) {
+    if (booleanPointInPolygon(probe, feature)) return feature.properties.name;
+  }
+  return null;
+}
+
+/** Nearest point on the province or state. Inside the shape there is no border to meet. */
+export function approachDivision(name: string, coordinates: [number, number]): [number, number] | null {
+  const feature = BY_NAME.get(name);
+  if (!feature) return null;
+  const probe = point(coordinates);
+  if (booleanPointInPolygon(probe, feature)) return null;
+  const nearest = nearestPointOnLine(boundaryLine(feature), probe);
+  const [lng, lat] = nearest.geometry.coordinates;
+  if (!Number.isFinite(lng) || !Number.isFinite(lat)) return null;
+  return [lng, lat];
+}
+
 function boundaryLine(feature: ProvinceFeature): LineFeature {
   const lined = polygonToLine(feature);
   if (lined.type !== "FeatureCollection") return lined as LineFeature;

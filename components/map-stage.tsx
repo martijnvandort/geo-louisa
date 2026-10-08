@@ -238,7 +238,7 @@ export function applyBasemapDifficulty(map: GeoMap, difficulty: MapDifficulty) {
   }
 }
 
-/** On the world map the answered country stays in color. Every other country steps back. */
+/** The answered country, province, or state stays in color. Everything else steps back. */
 function applyWorldMute(map: GeoMap, mute: boolean) {
   try {
     if (mute) {
@@ -657,7 +657,7 @@ export function MapStage({
               type: "fill",
               source: "province-highlight",
               paint: {
-                "fill-color": ["case", ["==", ["get", "correct"], true], "#a8d48c", "#f0a8a4"],
+                "fill-color": ["case", ["==", ["get", "correct"], true], "#E2ECC0", "#F8AFAF"],
                 "fill-opacity": 1,
               },
             },
@@ -747,7 +747,7 @@ export function MapStage({
       });
   }, [region]);
 
-  const muteWorld = region === "world" && highlight != null;
+  const muteWorld = highlight != null;
 
   useEffect(() => {
     const map = mapRef.current;
@@ -858,7 +858,13 @@ export function MapStage({
   }, [hydro, lands, ready, region, shell.height, shell.width]);
 
   return (
-    <div ref={shellRef} data-region={region} className="absolute inset-0 bg-[#e2f6fe]">
+    <div
+      ref={shellRef}
+      data-region={region}
+      data-highlight={highlight ? "yes" : "no"}
+      data-arcs={arcs.some((arc) => arc.segments.some((segment) => segment.length >= 2)) ? "yes" : "no"}
+      className="absolute inset-0 bg-[#e2f6fe]"
+    >
       <div
         ref={containerRef}
         style={{ width: "100%", height: "100%" }}

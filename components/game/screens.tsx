@@ -2,9 +2,9 @@
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { motion } from "framer-motion";
-import { ChevronDown, Copy, Trophy, Volume2, VolumeX } from "lucide-react";
+import { ChevronDown, Copy, Globe, Trophy, Volume2, VolumeX } from "lucide-react";
 import { placeCount, quizPlaceMode, getPlace, type PlaceMode } from "@/data/catalog";
-import type { QuestionCategory } from "@/data/question-categories";
+import { QUESTION_CATEGORY_LABEL, categoryForMap, questionCategoriesFor, type QuestionCategory } from "@/data/question-categories";
 import { quizCard, quizPool } from "@/data/quiz";
 import { useNow } from "@/components/game/count-up";
 import { Button } from "@/components/ui/button";
@@ -12,10 +12,10 @@ import type { EngineState, MapDifficulty, PlayFormat } from "@/lib/game-engine";
 import { matchTotal } from "@/lib/game-engine";
 import { fill, localPlaceName, LOCALE_IDS, messages, type LocaleId, type Messages } from "@/lib/i18n";
 import { formatKm, formatScore, GUESS_MS } from "@/lib/geo";
-import { placeNote, sameCountry } from "@/lib/place";
+import { placeNote } from "@/lib/place";
 import { isMuted, playTick, setMuted } from "@/lib/audio";
 
-const glass = "rounded-2xl border border-[#2f4a52]/15 bg-[#f0d8a8] text-[#2f4a52] shadow-[0_10px_28px_rgba(47,74,82,0.12)]";
+const glass = "rounded-2xl border border-[#2A150C] bg-[#FBF6D2] text-[#2A150C] shadow-[0_10px_28px_rgba(42,21,12,0.12)]";
 
 function MuteButton() {
   const [muted, setMutedState] = useState(false);
@@ -86,16 +86,13 @@ const COUNTRIES: { id: string; label: keyof Messages }[] = [
   { id: "united-states", label: "unitedStates" },
 ];
 
-const FIND_CHOICES = [
-  { id: "all", label: "categoryAll" },
-  { id: "landmarks", label: "categoryLandmarks" },
-  { id: "divisions", label: "findDivisions" },
-  { id: "division-capitals", label: "findDivisionCapitals" },
-] as const;
-
-type FindChoice = (typeof FIND_CHOICES)[number]["id"];
-
-const menuClass = `w-full appearance-none rounded-xl border border-[#cfc3b4] bg-[#f6f1ea] py-3 pl-3 pr-10 text-base font-medium text-[#333333] shadow-sm outline-none focus:border-[#a89f91] focus:ring-2 focus:ring-[#a89f91]/40 ${face}`;
+const uiFace = "[font-family:var(--font-ui),DM_Sans,sans-serif]";
+const displayFace = "[font-family:var(--font-display),Cormorant_Garamond,serif]";
+const questionType = `min-w-0 text-2xl leading-[1.15] font-normal tracking-[-0.005em] text-balance ${displayFace}`;
+const ink = "text-[#2A150C]";
+const fieldMetric = `h-[34px] w-[152px] shrink-0 appearance-none border bg-[#FFC2AA] py-1.5 pr-7 pl-3 text-right text-[15px] outline-none ${displayFace}`;
+const fieldClass = `${fieldMetric} border-[#2A150C] text-[#2A150C] focus:border-[#2A150C]`;
+const fieldLocked = `${fieldMetric} border-[#7A4E28] bg-[#FBF6D2] text-[#7A4E28]`;
 
 const LEVELS: { id: MapDifficulty; label: "kids" | "adults" | "smartAdults" }[] = [
   { id: "kids", label: "kids" },
@@ -103,36 +100,11 @@ const LEVELS: { id: MapDifficulty; label: "kids" | "adults" | "smartAdults" }[] 
   { id: "hard", label: "smartAdults" },
 ];
 
-function placeOptions(region: string): { id: PlaceMode; label: "countries" | "capitals" | "provinces" | "states" | "stateCapitals" }[] {
-  if (region === "netherlands") {
-    return [
-      { id: "provinces", label: "provinces" },
-      { id: "division-capitals", label: "capitals" },
-    ];
-  }
-  if (region === "united-states") {
-    return [
-      { id: "provinces", label: "states" },
-      { id: "capitals", label: "stateCapitals" },
-    ];
-  }
-  if (region === "world") return [{ id: "countries", label: "countries" }];
-  return [
-    { id: "countries", label: "countries" },
-    { id: "capitals", label: "capitals" },
-  ];
-}
-
-function coercePlace(region: string, mode: PlaceMode): PlaceMode {
-  const options = placeOptions(region);
-  return options.some((option) => option.id === mode) ? mode : options[0].id;
-}
-
-function currentFind(category: QuestionCategory): FindChoice {
-  if (category === "landmarks") return "landmarks";
-  if (category === "provinces" || category === "states") return "divisions";
-  if (category === "province-capitals" || category === "state-capitals") return "division-capitals";
-  return "all";
+function placeModeFor(category: QuestionCategory, region: string): PlaceMode {
+  if (category === "provinces" || category === "states") return "provinces";
+  if (category === "province-capitals") return "division-capitals";
+  if (category === "state-capitals" || category === "capitals") return "capitals";
+  return quizPlaceMode(region);
 }
 
 export function LobbyScreen({
@@ -163,179 +135,187 @@ export function LobbyScreen({
     text[a.label].localeCompare(text[b.label], locale);
   const regions = REGIONS.slice().sort(byName);
   const countries = COUNTRIES.slice().sort(byName);
-  const finds = FIND_CHOICES.slice().sort(byName);
+  const [step1Done, setStep1Done] = useState(false);
   const regionValue = REGIONS.some((choice) => choice.id === state.region) ? state.region : "";
   const countryValue = COUNTRIES.some((choice) => choice.id === state.region) ? state.region : "";
-  const findValue = currentFind(state.questionCategory);
+  const category = categoryForMap(state.questionCategory, state.region);
+  const categories = questionCategoriesFor(state.region);
+  const laterSteps = step1Done;
 
   useEffect(() => {
-    const next = coercePlace(state.region, state.placeMode);
-    if (next !== state.placeMode && findValue !== "divisions" && findValue !== "division-capitals") onPlaceMode(next);
-  }, [findValue, onPlaceMode, state.placeMode, state.region]);
+    if (category !== state.questionCategory) onQuestionCategory(category);
+    const mode = placeModeFor(category, state.region);
+    if (mode !== state.placeMode) onPlaceMode(mode);
+  }, [category, onPlaceMode, onQuestionCategory, state.placeMode, state.questionCategory, state.region]);
 
-  function applyFind(choice: FindChoice, region: string) {
-    if (choice === "landmarks") {
-      onQuestionCategory("landmarks");
-      const next = coercePlace(region, state.placeMode);
-      if (next !== state.placeMode) onPlaceMode(next);
-      return;
-    }
-    if (choice === "divisions") {
-      onQuestionCategory(region === "united-states" ? "states" : "provinces");
-      onPlaceMode(region === "netherlands" || region === "united-states" ? "provinces" : coercePlace(region, "countries"));
-      return;
-    }
-    if (choice === "division-capitals") {
-      if (region === "united-states") {
-        onQuestionCategory("state-capitals");
-        onPlaceMode("capitals");
-      } else if (region === "netherlands") {
-        onQuestionCategory("province-capitals");
-        onPlaceMode("division-capitals");
-      } else {
-        onQuestionCategory("province-capitals");
-        onPlaceMode(coercePlace(region, "capitals"));
-      }
-      return;
-    }
-    onQuestionCategory("all");
-    const next = coercePlace(region, "countries");
-    if (next !== state.placeMode) onPlaceMode(next);
+  function chooseCategory(next: QuestionCategory) {
+    onQuestionCategory(next);
+    const mode = placeModeFor(next, state.region);
+    if (mode !== state.placeMode) onPlaceMode(mode);
   }
 
   function chooseMap(id: string) {
+    setStep1Done(true);
     onRegion(id);
-    applyFind(findValue, id);
+    const next = categoryForMap(state.questionCategory, id);
+    if (next !== state.questionCategory) onQuestionCategory(next);
+    const mode = placeModeFor(next, id);
+    if (mode !== state.placeMode) onPlaceMode(mode);
   }
 
+  const levelNote =
+    state.mapDifficulty === "kids"
+      ? text.levelNoteEasy
+      : state.mapDifficulty === "hard"
+        ? text.levelNoteHard
+        : text.levelNoteMedium;
+
   return (
-    <div className="pointer-events-none absolute top-[4.75rem] left-3 z-20 w-[min(16.5rem,calc(100%-1.5rem))]">
-      <section className="pointer-events-auto max-h-[calc(100dvh-5.5rem)] overflow-y-auto rounded-2xl border border-[#d4d4d4] bg-[#f3f3f3] p-3 text-[#1a1a1a] shadow-[0_8px_24px_rgba(0,0,0,0.12)]">
-        <Header>{text.language}</Header>
-        <div className="mt-1.5 grid grid-cols-2 gap-1.5" role="radiogroup" aria-label={text.language}>
-          {LOCALE_IDS.map((id) => (
-            <Pill key={id} active={state.locale === id} title={id.toUpperCase()} onClick={() => onLocale(id)} />
-          ))}
+    <div className={`pointer-events-auto absolute top-0 bottom-0 left-0 z-20 flex h-dvh w-[min(480px,calc(100%-48px))] flex-col bg-[#FBF6D2] text-[#2A150C] ${uiFace}`}>
+      <header className="flex h-12 shrink-0 items-center justify-end border-b-[0.5px] border-[#2A150C] px-4">
+        <label className={ink}>
+          <span className="sr-only">{text.language}</span>
+          <span className="flex items-center gap-1.5 border-[0.5px] border-[#2A150C] bg-[#FFC2AA] px-2 py-1 text-xs">
+            <Globe className="h-3.5 w-3.5" aria-hidden="true" />
+            <select
+              aria-label={text.language}
+              value={state.locale}
+              onChange={(event) => onLocale(event.target.value as LocaleId)}
+              className="appearance-none bg-transparent pr-3 focus:outline-none"
+            >
+              {LOCALE_IDS.map((id) => (
+                <option key={id} value={id}>
+                  {id.toUpperCase()}
+                </option>
+              ))}
+            </select>
+            <ChevronDown className="pointer-events-none -ml-3 h-3 w-3 text-[#2A150C]" aria-hidden="true" />
+          </span>
+        </label>
+      </header>
+      <div className="flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto px-4 py-4">
+        <div className="space-y-2">
+          <h1 className={`${questionType} flex items-baseline gap-2 ${ink}`}>
+            <span className="shrink-0 tabular-nums">1</span>
+            <span>{text.chooseRegion}</span>
+          </h1>
+          <div className="flex flex-wrap items-center gap-2" role="group" aria-label={text.chooseRegion}>
+            {regions.map((choice) => {
+              const selected = step1Done && regionValue === choice.id;
+              return (
+                <button
+                  key={choice.id}
+                  type="button"
+                  aria-pressed={selected}
+                  onClick={() => chooseMap(choice.id)}
+                  className={`h-[34px] border-[0.5px] px-3 text-xs text-[#2A150C] transition-colors ${
+                    selected
+                      ? "border-[#2A150C] bg-[#F8AFAF] font-semibold"
+                      : "border-[#2A150C] bg-[#FFC2AA] font-normal hover:bg-[#F8AFAF]"
+                  }`}
+                >
+                  {text[choice.label]}
+                </button>
+              );
+            })}
+            <span className="relative">
+              <select
+                aria-label={text.orCountry}
+                className={`h-[34px] appearance-none border-[0.5px] py-0 pr-7 pl-3 text-xs text-[#2A150C] outline-none ${
+                  step1Done && countryValue !== ""
+                    ? "border-[#2A150C] bg-[#F8AFAF] font-semibold"
+                    : "border-[#2A150C] bg-[#FFC2AA] font-normal"
+                }`}
+                value={step1Done ? countryValue : ""}
+                onChange={(event) => {
+                  if (event.target.value) chooseMap(event.target.value);
+                }}
+              >
+                <option value="">{text.orCountry}</option>
+                {countries.map((choice) => (
+                  <option key={choice.id} value={choice.id}>
+                    {text[choice.label]}
+                  </option>
+                ))}
+              </select>
+              <ChevronDown className="pointer-events-none absolute top-1/2 right-2 h-3.5 w-3.5 -translate-y-1/2 text-[#2A150C]" />
+            </span>
+          </div>
         </div>
-        <FieldLabel>{text.continents}</FieldLabel>
-        <MenuSelect
-          label={text.continents}
-          value={regionValue}
-          onChange={(value) => {
-            if (value) chooseMap(value);
-          }}
-        >
-          {regionValue === "" ? <option value=""> </option> : null}
-          {regions.map((choice) => (
-            <option key={choice.id} value={choice.id}>
-              {text[choice.label]}
-            </option>
-          ))}
-        </MenuSelect>
-        <FieldLabel>{text.individualCountries}</FieldLabel>
-        <MenuSelect
-          label={text.individualCountries}
-          value={countryValue}
-          onChange={(value) => {
-            if (value) chooseMap(value);
-          }}
-        >
-          {countryValue === "" ? <option value=""> </option> : null}
-          {countries.map((choice) => (
-            <option key={choice.id} value={choice.id}>
-              {text[choice.label]}
-            </option>
-          ))}
-        </MenuSelect>
-        <FieldLabel>{text.whatFind}</FieldLabel>
-        <MenuSelect label={text.whatFind} value={findValue} onChange={(value) => applyFind(value as FindChoice, state.region)}>
-          {finds.map((choice) => (
-            <option key={choice.id} value={choice.id}>
-              {text[choice.label]}
-            </option>
-          ))}
-        </MenuSelect>
-        <FieldLabel>{text.whatLevel}</FieldLabel>
-        <MenuSelect
-          label={text.whatLevel}
-          value={state.mapDifficulty}
-          onChange={(value) => onDifficulty(value as MapDifficulty)}
-        >
-          {LEVELS.map((choice) => (
-            <option key={choice.id} value={choice.id}>
-              {text[choice.label]}
-            </option>
-          ))}
-        </MenuSelect>
-        <Header>{text.whatName}</Header>
-        <input
-          id="nickname"
-          aria-label={text.whatName}
-          value={state.nickname}
-          maxLength={18}
-          placeholder={text.whatName}
-          className="mt-1.5 h-8 w-full rounded-full border border-[#d0d0d0] bg-white px-3 text-sm text-[#1a1a1a] outline-none placeholder:text-[#888]"
-          onChange={(event) => onNickname(event.target.value)}
-        />
+        <div aria-disabled={laterSteps ? undefined : true}>
+          <FieldRow label={text.whatFind} step="2" locked={!laterSteps}>
+            <select
+              aria-label={text.whatFind}
+              className={laterSteps ? fieldClass : fieldLocked}
+              value={category}
+              disabled={!laterSteps}
+              onChange={(event) => chooseCategory(event.target.value as QuestionCategory)}
+            >
+              {categories.map((choice) => (
+                <option key={choice} value={choice}>
+                  {text[QUESTION_CATEGORY_LABEL[choice]]}
+                </option>
+              ))}
+            </select>
+          </FieldRow>
+        </div>
+        <div className="space-y-1.5" aria-disabled={laterSteps ? undefined : true}>
+          <FieldRow label={text.whatLevel} step="3" locked={!laterSteps}>
+            <select
+              aria-label={text.whatLevel}
+              className={laterSteps ? fieldClass : fieldLocked}
+              value={state.mapDifficulty}
+              disabled={!laterSteps}
+              onChange={(event) => onDifficulty(event.target.value as MapDifficulty)}
+            >
+              {LEVELS.map((choice) => (
+                <option key={choice.id} value={choice.id}>
+                  {text[choice.label]}
+                </option>
+              ))}
+            </select>
+          </FieldRow>
+          <p className={`text-right text-xs ${laterSteps ? "text-[#5C3014]" : "text-[#7A4E28]"}`}>{levelNote}</p>
+        </div>
+      </div>
+      <footer className="flex shrink-0 items-center justify-end border-t-[0.5px] border-[#2A150C] px-4 py-2">
         <button
           type="button"
-          className="mt-3 h-9 w-full rounded-full bg-[#f0b478] text-sm font-medium text-[#2f4a52] disabled:opacity-40"
-          disabled={!quizAvailable}
+          className="h-9 min-w-[104px] border border-[#2A150C] bg-[#FAD5B3] px-4 text-sm font-medium text-[#2A150C] disabled:opacity-40"
+          disabled={!step1Done || !quizAvailable}
           onClick={() => onPlay("quiz")}
         >
-          {text.playQuiz}
+          {text.play}
         </button>
-      </section>
+      </footer>
     </div>
   );
 }
 
-function Header({ children }: { children: string }) {
-  return <p className="mt-3 text-xs leading-snug font-medium text-[#222] first:mt-0">{children}</p>;
-}
-
-function FieldLabel({ children }: { children: string }) {
-  return (
-    <p className={`mt-3 mb-1.5 text-[11px] font-medium uppercase leading-snug tracking-[0.18em] text-[#6e655c] ${face}`}>
-      {children}
-    </p>
-  );
-}
-
-function MenuSelect({
+function FieldRow({
   label,
-  value,
-  onChange,
+  step,
+  locked = false,
   children,
 }: {
   label: string;
-  value: string;
-  onChange: (value: string) => void;
+  step: string;
+  locked?: boolean;
   children: ReactNode;
 }) {
   return (
-    <div className="relative">
-      <select aria-label={label} className={menuClass} value={value} onChange={(event) => onChange(event.target.value)}>
+    <div className="flex items-baseline justify-between gap-3">
+      <h2 className={`${questionType} flex items-baseline gap-2 ${locked ? "text-[#7A4E28]" : ink}`}>
+        <span className="shrink-0 tabular-nums">{step}</span>
+        <span>{label}</span>
+      </h2>
+      <span className="relative">
         {children}
-      </select>
-      <ChevronDown className="pointer-events-none absolute top-1/2 right-4 h-4 w-4 -translate-y-1/2 text-[#6e655c]" />
+        <ChevronDown
+          className={`pointer-events-none absolute top-1/2 right-2 h-3.5 w-3.5 -translate-y-1/2 ${locked ? "text-[#7A4E28]" : "text-[#2A150C]"}`}
+        />
+      </span>
     </div>
-  );
-}
-
-function Pill({ active, title, onClick }: { active: boolean; title: string; onClick: () => void }) {
-  return (
-    <button
-      type="button"
-      role="radio"
-      aria-checked={active}
-      onClick={onClick}
-      className={`min-h-8 h-auto w-full rounded-full border px-3 py-2 text-left text-xs leading-snug font-medium ${
-        active ? "border-[#f0b478] bg-[#f0b478] text-[#2f4a52]" : "border-[#d0d0d0] bg-white text-[#222]"
-      }`}
-    >
-      {title}
-    </button>
   );
 }
 
@@ -404,6 +384,42 @@ export function WaitingScreen({
   );
 }
 
+function divisionAreaRound(city: { id: string }, state: EngineState): boolean {
+  return city.id.includes(":province:") && (state.playFormat !== "quiz" || state.quizStep === 2);
+}
+
+function pinKind(city: { id: string }, state: EngineState): "country" | "province" | "state" | "city" {
+  if (state.playFormat === "quiz" && state.quizStep === 3) return "city";
+  if (city.id.startsWith("united-states:province:")) return "state";
+  if (city.id.includes(":province:")) return "province";
+  if (city.id.includes(":country:")) return "country";
+  return "city";
+}
+
+function pinQuestion(text: ReturnType<typeof messages>, city: { id: string; name: string; capitalName?: string }, state: EngineState): string {
+  const kind = pinKind(city, state);
+  const name =
+    kind === "city"
+      ? (city.capitalName ?? city.name)
+      : kind === "country"
+        ? localPlaceName(state.locale, city.name)
+        : city.name;
+  if (kind === "province") return fill(text.whereIsProvince, { name });
+  if (kind === "state") return fill(text.whereIsState, { name });
+  if (kind === "country") return fill(text.whereIsCountry, { name });
+  return fill(text.whereIsCity, { name });
+}
+
+function divisionPinLine(
+  text: ReturnType<typeof messages>,
+  locale: LocaleId,
+  guess: { confirmed: boolean; place: string | null } | undefined,
+): string {
+  if (!guess?.confirmed) return text.noPin;
+  if (!guess.place) return text.pinWasOceanBare;
+  return fill(text.pinWasIn, { place: localPlaceName(locale, guess.place) });
+}
+
 function worldPinLine(
   text: ReturnType<typeof messages>,
   locale: LocaleId,
@@ -415,7 +431,6 @@ function worldPinLine(
   const distance = formatKm(guess.distanceKm);
   if (!guess.place) return fill(text.pinWasOcean, { distance, target });
   const place = localPlaceName(locale, guess.place);
-  if (sameCountry(guess.place, targetName) || guess.distanceKm === 0) return fill(text.pinWasIn, { place });
   return fill(text.pinWasAway, { place, distance, target });
 }
 
@@ -428,13 +443,7 @@ function PlayerRow({ name, detail }: { name: string; detail: string }) {
   );
 }
 
-export function PlayOverlay({
-  state,
-  onStop,
-}: {
-  state: EngineState;
-  onStop: () => void;
-}) {
+export function PlayOverlay({ state }: { state: EngineState }) {
   const cityId = state.cityIds[state.roundIndex];
   const city = cityId ? getPlace(cityId) : null;
   const part = state.playFormat === "quiz" && state.quizStep === 3 ? 1 : 0;
@@ -442,7 +451,6 @@ export function PlayOverlay({
   const showingResult = state.phase === "ROUND_RESULT" && record != null;
   const guessing = state.phase === "GUESSING_ACTIVE";
   const timed = state.mapDifficulty !== "kids";
-  const quiz = state.playFormat === "quiz";
   const frozen = state.submitted ? (state.localGuess?.timeRemaining ?? 0) : null;
   const now = useNow(timed && guessing && frozen == null && state.guessingEndsAt != null);
   const remaining =
@@ -452,24 +460,17 @@ export function PlayOverlay({
       : Math.max(0, Math.min(GUESS_MS / 1000, (state.guessingEndsAt - now) / 1000)));
   const urgent = timed && guessing && remaining <= 2;
   const lastSecond = useRef<number | null>(null);
-  const localTotal = matchTotal(state);
   const text = messages(state.locale);
-  const regionLabel = city?.id.includes(":country:") ? localPlaceName(state.locale, city.name) : city?.name;
-  const mapPrompt = quiz
-    ? fill(text.whereIs, {
-        name:
-          state.quizStep === 3
-            ? (city?.capitalName ?? city?.name ?? "")
-            : (regionLabel ?? ""),
-      })
-    : null;
   const mine = record?.guesses.find((guess) => guess.playerId === state.playerId);
   const note = mine ? placeNote(mine.place, mine.confirmed, city?.country ?? "") : null;
-  const worldCountry = state.region === "world" && Boolean(city?.id.includes(":country:"));
-  const countryTarget = Boolean(city?.id.includes(":country:"));
+  const divisionArea = city ? divisionAreaRound(city, state) : false;
   const resultLine =
-    worldCountry && showingResult && city
-      ? worldPinLine(text, state.locale, mine, city.name)
+    showingResult && city
+      ? divisionArea
+        ? divisionPinLine(text, state.locale, mine)
+        : city.id.includes(":country:") || city.id.includes(":province:")
+          ? worldPinLine(text, state.locale, mine, city.name)
+          : null
       : null;
 
   useEffect(() => {
@@ -494,50 +495,25 @@ export function PlayOverlay({
         ) : null}
       </div>
 
-      <div className="pointer-events-none absolute inset-x-0 bottom-3 z-20 flex justify-center px-3 pb-[env(safe-area-inset-bottom)]">
-        <div className={`${glass} pointer-events-auto flex w-full max-w-md items-center gap-3 px-3 py-2.5`}>
-          <div className="min-w-0 flex-1">
-            <p className="font-mono text-[11px] uppercase tracking-[0.16em] text-[#2f4a52]">
-              {fill(text.round, {
-                current: String(state.roundIndex + 1),
-                total: String(state.cityIds.length),
-              })}
-              <span className="text-[#2f4a52]"> · {fill(text.points, { score: formatScore(localTotal) })}</span>
-            </p>
-            <p className="truncate text-base font-medium text-[#2f4a52]">
-              {mapPrompt ??
-                (countryTarget ? (
-                  localPlaceName(state.locale, city.name)
-                ) : (
-                  <>
-                    {city.name}
-                    <span className="font-normal text-[#2f4a52]">, {localPlaceName(state.locale, city.country)}</span>
-                  </>
-                ))}
-            </p>
-            {showingResult ? (
-              <p className="text-sm text-[#2f4a52]">
-                {resultLine ?? (
-                  <>
-                    <span className="font-mono">{mine?.confirmed ? formatKm(mine.distanceKm) : text.noPin}</span>
-                    {note ? <span> · {note}</span> : null}
-                  </>
-                )}
-              </p>
-            ) : (
-              <p className={`text-sm ${urgent ? "text-[#8a3d32]" : "text-[#2f4a52]"}`}>
-                {timed && state.guessingEndsAt != null ? (
-                  <span className="font-mono tabular-nums">{remaining.toFixed(1)}s</span>
-                ) : null}
-                <span className={timed && state.guessingEndsAt != null ? "ml-2 text-xs text-[#2f4a52]" : "text-xs text-[#2f4a52]"}>
-                  {state.submitted && state.mode === "multi" ? text.waitingPin : text.clickLocks}
-                </span>
-              </p>
-            )}
-          </div>
-          <Button type="button" size="sm" variant="outline" className="shrink-0" onClick={onStop}>
-            {text.stop}
-          </Button>
+      <div className="pointer-events-none absolute bottom-0 left-0 right-36 z-20 px-3 pb-[env(safe-area-inset-bottom)]">
+        <div className={`${glass} pointer-events-auto flex h-14 w-full items-center gap-3 px-3`}>
+          <p className="shrink-0 font-mono text-[11px] uppercase tracking-[0.12em] text-[#2A150C] tabular-nums">
+            {fill(text.round, {
+              current: String(state.roundIndex + 1),
+              total: String(state.cityIds.length),
+            })}
+          </p>
+          <p className="min-w-0 flex-1 truncate text-sm font-medium text-[#2A150C]">
+            {showingResult
+              ? (resultLine ??
+                `${mine?.confirmed ? formatKm(mine.distanceKm) : text.noPin}${note ? ` · ${note}` : ""}`)
+              : pinQuestion(text, city, state)}
+          </p>
+          <p
+            className={`w-12 shrink-0 text-right font-mono text-sm tabular-nums ${urgent ? "text-[#8a3d32]" : "text-[#2A150C]"}`}
+          >
+            {timed && guessing && state.guessingEndsAt != null ? `${remaining.toFixed(1)}s` : ""}
+          </p>
         </div>
       </div>
     </>
@@ -547,11 +523,9 @@ export function PlayOverlay({
 export function QuizCard({
   state,
   onChoose,
-  onStop,
 }: {
   state: EngineState;
   onChoose: (choice: string) => void;
-  onStop: () => void;
 }) {
   const id = state.cityIds[state.roundIndex];
   const place = id ? getPlace(id) : null;
@@ -601,9 +575,9 @@ export function QuizCard({
                 onClick={() => onChoose(choice)}
                 className={`h-10 shrink-0 truncate rounded-full border px-3 text-sm font-medium ${
                   right
-                    ? "border-[#a8d48c] bg-[#a8d48c] text-[#2f4a52]"
+                    ? "border-[#2A150C] bg-[#E2ECC0] text-[#2A150C]"
                     : wrong
-                      ? "border-[#f0a8a4] bg-[#f0a8a4] text-[#2f4a52]"
+                      ? "border-[#2A150C] bg-[#F8AFAF] text-[#2A150C]"
                       : "border-[#d0d0d0] bg-white text-[#2f4a52]"
                 }`}
               >
@@ -612,9 +586,6 @@ export function QuizCard({
             );
           })}
         </div>
-        <Button type="button" variant="ghost" className="mt-auto" onClick={onStop}>
-          {text.stop}
-        </Button>
       </section>
     </div>
   );
@@ -628,7 +599,7 @@ export function FinalScreen({ state, onAgain }: { state: EngineState; onAgain: (
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
     let cancelled = false;
     let frame = 0;
-    const colors = ["#f0b478", "#84c0b4", "#fccc84", "#a8cc84"];
+    const colors = ["#F8AFAF", "#FFC2AA", "#FAD5B3", "#FBF6D2", "#E2ECC0"];
     void import("canvas-confetti").then(({ default: confetti }) => {
       if (cancelled) return;
       const end = Date.now() + 1400;
@@ -673,8 +644,15 @@ export function FinalScreen({ state, onAgain }: { state: EngineState; onAgain: (
                   ) : null}
                 </span>
                 <span className="shrink-0 text-right font-mono tabular-nums">
-                  {guess?.confirmed ? formatKm(guess.distanceKm) : text.noPin}
-                  <span> · {fill(text.points, { score: formatScore(guess?.total ?? 0) })}</span>
+                  {city.id.includes(":province:") && (round.part ?? 0) === 0
+                    ? guess?.confirmed
+                      ? null
+                      : text.noPin
+                    : guess?.confirmed
+                      ? formatKm(guess.distanceKm)
+                      : text.noPin}
+                  {city.id.includes(":province:") && (round.part ?? 0) === 0 && guess?.confirmed ? null : <span> · </span>}
+                  <span>{fill(text.points, { score: formatScore(guess?.total ?? 0) })}</span>
                 </span>
               </li>
             );

@@ -328,28 +328,19 @@ export function countryPhrase(name: string): string {
   return COUNTRIES_WITH_THE.has(name) ? `the ${name}` : name;
 }
 
-/** Georgia is the one name that is both a country and a US state. */
-function sharedCountryAndState(name: string): boolean {
-  return Boolean(DIVISION_CITIES[name] && (COUNTRY_CITIES[name] || OTHER_CITIES[name]));
-}
-
+/** The place kind is always named, so Utrecht the province is not Utrecht the city, and Georgia the state is not Georgia the country. */
 function cityPlaceLabel(kind: QuizKind, name: string, locale: LocaleId): string {
-  if (kind === "country") {
-    if (sharedCountryAndState(name) && locale === "en") return `the country of ${name}`;
-    return localPlaceName(locale, name);
-  }
-  if (kind === "state" && sharedCountryAndState(name)) {
-    return locale === "nl" ? `de staat ${name}` : `the state of ${name}`;
-  }
-  return name;
+  if (kind === "province") return locale === "nl" ? `de provincie ${name}` : `the province of ${name}`;
+  if (kind === "state") return locale === "nl" ? `de staat ${name}` : `the state of ${name}`;
+  const country = localPlaceName(locale, name);
+  return locale === "nl" ? `het land ${country}` : `the country of ${country}`;
 }
 
 export function capitalQuestion(kind: QuizKind, name: string, locale: LocaleId = "en"): string {
   const text = messages(locale);
-  const label = kind === "country" ? localPlaceName(locale, name) : name;
-  if (kind === "province") return fill(text.provinceCapital, { name: label });
-  if (kind === "state") return fill(text.stateCapital, { name: label });
-  return fill(text.countryCapital, { name: label });
+  if (kind === "province") return fill(text.provinceCapital, { name });
+  if (kind === "state") return fill(text.stateCapital, { name });
+  return fill(text.countryCapital, { name: cityPlaceLabel("country", name, locale) });
 }
 
 function otherNames(pool: PlayPlace[], place: PlayPlace, take: number, rnd: () => number): string[] {
@@ -425,7 +416,8 @@ function bareCountry(name: string): string {
   return name.replace(/^The /, "");
 }
 
-function landmarkTarget(place: PlayPlace, ask: QuizAsk): LandmarkTarget {
+function landmarkTarget(place: PlayPlace, ask: QuizAsk, step: 0 | 1): LandmarkTarget {
+  if (step === 1) return "city";
   if (ask.category === "provinces" || ask.category === "states") return "division";
   const kind = quizKind(place);
   if (kind === "province" || kind === "state") {
@@ -470,10 +462,15 @@ function landmarkCard(
   locale: LocaleId,
   ask: QuizAsk,
 ): QuizCard | null {
-  const target = landmarkTarget(place, ask);
-  const fits = fittingLandmarks(place, ask, target);
+  const target = landmarkTarget(place, ask, step);
+  const placeAnswer = quizKind(place) === "country" ? bareCountry(place.name) : place.name;
+  const fits = fittingLandmarks(place, ask, target).filter((item) => {
+    if (step !== 1) return true;
+    const city = landmarkAnswer(item, "city", locale);
+    return city !== "" && city !== placeAnswer && city !== place.name;
+  });
   if (fits.length === 0) return null;
-  if (step === 1 && fits.length === 1) return null;
+  if (step === 1 && target !== "city" && fits.length === 1) return null;
   const rnd = mulberry32((seed + roundIndex * 29 + step * 5) >>> 0);
   let index = Math.floor(rnd() * fits.length);
   if (step === 1 && fits.length > 1) {
@@ -574,9 +571,13 @@ export function quizCard(
 ): QuizCard {
   const classic = () => classicQuizCard(seed, roundIndex, step, place, pool, locale);
   const category = ask?.category;
-  if (!category || category === "province-capitals" || category === "state-capitals") return classic();
+  if (!category || category === "capitals" || category === "province-capitals" || category === "state-capitals") return classic();
   if (category === "landmarks" || category === "provinces" || category === "states") {
-    return landmarkCard(seed, roundIndex, step, place, pool, locale, ask ?? {}) ?? classic();
+    const card = landmarkCard(seed, roundIndex, step, place, pool, locale, ask ?? {}) ?? classic();
+    if (step === 0) return card;
+    const first = landmarkCard(seed, roundIndex, 0, place, pool, locale, ask ?? {}) ?? classicQuizCard(seed, roundIndex, 0, place, pool, locale);
+    if (card.correct === first.correct) return classic();
+    return card;
   }
   const choices = [classic()];
   const landmark = landmarkCard(seed, roundIndex, step, place, pool, locale, ask ?? {});

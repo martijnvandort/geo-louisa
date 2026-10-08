@@ -7,6 +7,8 @@ export type Messages = {
   findDivisions: string;
   findDivisionCapitals: string;
   individualCountries: string;
+  chooseRegion: string;
+  orCountry: string;
   whatFind: string;
   whatCategory: string;
   categoryAll: string;
@@ -24,6 +26,9 @@ export type Messages = {
   kids: string;
   adults: string;
   smartAdults: string;
+  levelNoteEasy: string;
+  levelNoteMedium: string;
+  levelNoteHard: string;
   countries: string;
   capitals: string;
   provinces: string;
@@ -32,6 +37,7 @@ export type Messages = {
   play: string;
   playQuiz: string;
   stop: string;
+  endGame: string;
   clickLocks: string;
   waitingPin: string;
   round: string;
@@ -46,9 +52,14 @@ export type Messages = {
   largestCity: string;
   cityIn: string;
   whereIs: string;
+  whereIsCountry: string;
+  whereIsProvince: string;
+  whereIsState: string;
+  whereIsCity: string;
   pinWasIn: string;
   pinWasAway: string;
   pinWasOcean: string;
+  pinWasOceanBare: string;
   eu: string;
   middleEast: string;
   northAmerica: string;

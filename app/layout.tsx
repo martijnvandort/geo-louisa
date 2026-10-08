@@ -1,9 +1,21 @@
 import type { Metadata, Viewport } from "next";
-import { Geist, Geist_Mono, Inter } from "next/font/google";
+import { Cormorant_Garamond, DM_Sans, Geist, Geist_Mono, Inter } from "next/font/google";
 import "./globals.css";
 
 const inter = Inter({
   variable: "--font-inter",
+  subsets: ["latin"],
+  weight: ["400", "500", "600"],
+});
+
+const display = Cormorant_Garamond({
+  variable: "--font-display",
+  subsets: ["latin"],
+  weight: ["400"],
+});
+
+const ui = DM_Sans({
+  variable: "--font-ui",
   subsets: ["latin"],
   weight: ["400", "500", "600"],
 });
@@ -32,7 +44,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="en" className={`${geistSans.variable} ${geistMono.variable} ${inter.variable} h-full`}>
+    <html lang="en" className={`${geistSans.variable} ${geistMono.variable} ${inter.variable} ${display.variable} ${ui.variable} h-full`}>
       <body className="min-h-dvh bg-[#e2f6fe] text-[#2f4a52] antialiased">{children}</body>
     </html>
   );
